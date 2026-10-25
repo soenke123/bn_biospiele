@@ -2,14 +2,27 @@
 <html lang="de" class="h-full bg-slate-950 text-slate-100 font-sans">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <title>Evolutionsfaktoren Glossar & Memory</title>
-    <!-- Tailwind CSS CDN -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Font Awesome Icons CDN -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Tailwind CSS (lokal, offline) -->
+    <script src="vendor/tailwind.js"></script>
+    <!-- Font Awesome (lokal, nur fa-solid) -->
+    <link rel="stylesheet" href="vendor/fontawesome/css/all.min.css">
     
     <style>
+        /* Touch: kein Doppeltipp-Zoom, kein graues Tap-Highlight, kein Long-Press-Menü */
+        html, body, button {
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
+            -webkit-touch-callout: none;
+        }
+        /* Safe-Area (Notch / Home-Indicator) */
+        header { padding-top: env(safe-area-inset-top); }
+        body { padding-left: env(safe-area-inset-left); padding-right: env(safe-area-inset-right); padding-bottom: env(safe-area-inset-bottom); }
+
         /* Custom 3D Perspective & Flip Styles */
         .perspective-1000 {
             perspective: 1000px;
@@ -54,7 +67,7 @@
 
     <!-- TOP HEADER & MODE NAVIGATION -->
     <header class="w-full bg-slate-900 border-b border-slate-800 sticky top-0 z-30 shadow-md">
-        <div class="max-w-7xl mx-auto px-4 py-3 flex flex-col sm:flex-row items-center justify-between gap-3">
+        <div class="max-w-7xl mx-auto px-4 py-2 flex flex-col sm:flex-row items-center justify-between gap-2">
             <div class="flex items-center gap-3">
                 <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-500 to-teal-400 flex items-center justify-center text-slate-950 font-black text-xl shadow-lg shadow-emerald-500/20">
                     <i class="fa-solid fa-dna"></i>
@@ -66,7 +79,8 @@
             </div>
 
             <!-- TAB SWITCHER -->
-            <div class="flex items-center bg-slate-950 p-1 rounded-xl border border-slate-800 w-full sm:w-auto">
+            <div class="flex items-center gap-2 w-full sm:w-auto">
+            <div class="flex items-center bg-slate-950 p-1 rounded-xl border border-slate-800 flex-1 sm:flex-initial">
                 <button id="tab-btn-cards" onclick="switchMode('cards')" class="flex-1 sm:flex-initial px-4 py-2 rounded-lg text-xs sm:text-sm font-semibold transition-all flex items-center justify-center gap-2 bg-emerald-500 text-slate-950 shadow-md">
                     <i class="fa-solid fa-clone"></i> Lernkarten
                 </button>
@@ -74,11 +88,15 @@
                     <i class="fa-solid fa-gamepad"></i> 2-Spieler Memory
                 </button>
             </div>
+            <button id="fullscreen-btn" onclick="toggleFullscreen()" title="Vollbild" aria-label="Vollbild" class="hidden shrink-0 w-11 h-11 rounded-xl bg-slate-950 border border-slate-800 text-slate-300 hover:text-emerald-400 flex items-center justify-center transition">
+                <i id="fullscreen-icon" class="fa-solid fa-expand"></i>
+            </button>
+            </div>
         </div>
     </header>
 
     <!-- MAIN CONTENT WRAPPER -->
-    <main class="flex-1 w-full max-w-7xl mx-auto p-3 sm:p-6 flex flex-col min-h-0">
+    <main class="flex-1 w-full max-w-7xl mx-auto p-2 sm:p-4 flex flex-col min-h-0 overflow-y-auto">
 
         <!-- ================= MODE 1: FLASHCARDS ================= -->
         <section id="mode-cards" class="flex-1 flex flex-col items-center justify-center max-w-2xl mx-auto w-full">
@@ -149,85 +167,68 @@
 
         <!-- ================= MODE 2: MEMORY GAME ================= -->
         <section id="mode-memory" class="hidden flex-1 flex flex-col min-h-0 w-full">
-            
-            <!-- Memory Header Bar -->
-            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-3 sm:p-4 mb-4 flex flex-wrap items-center justify-between gap-3 shadow-lg">
-                <!-- Settings -->
-                <div class="flex items-center gap-3">
-                    <label for="pair-select" class="text-xs sm:text-sm font-semibold text-slate-300 flex items-center gap-1.5">
-                        <i class="fa-solid fa-layer-group text-emerald-400"></i> Paare:
-                    </label>
-                    <select id="pair-select" onchange="startNewMemoryGame()" class="bg-slate-950 border border-slate-700 text-slate-200 text-xs sm:text-sm rounded-xl px-3 py-1.5 font-semibold focus:outline-none focus:border-emerald-500">
+
+            <!-- Compact top bar: settings, scores, turn hint -->
+            <div class="bg-slate-900 border border-slate-800 rounded-xl px-2.5 py-1.5 mb-2 flex flex-wrap items-center gap-x-3 gap-y-1.5 shadow-md shrink-0">
+                <div class="flex items-center gap-1.5">
+                    <select id="pair-select" onchange="startNewMemoryGame()" class="bg-slate-950 border border-slate-700 text-slate-200 text-xs rounded-lg px-2 py-1 font-semibold focus:outline-none focus:border-emerald-500">
                         <option value="6">6 Paare</option>
                         <option value="8" selected>8 Paare</option>
                         <option value="12">12 Paare</option>
                         <option value="24">24 Paare (Alle)</option>
                     </select>
-
-                    <button onclick="startNewMemoryGame()" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 text-xs sm:text-sm font-semibold rounded-xl transition flex items-center gap-1.5">
+                    <button onclick="startNewMemoryGame()" title="Neustart" class="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 text-xs font-semibold rounded-lg transition flex items-center gap-1.5">
                         <i class="fa-solid fa-rotate-right text-emerald-400"></i> Neustart
                     </button>
                 </div>
 
-                <!-- Scoreboard -->
-                <div class="flex items-center gap-3">
-                    <div id="p1-card" class="px-4 py-2 rounded-xl border-2 transition-all flex items-center gap-2 border-emerald-500 bg-emerald-950/40">
-                        <i class="fa-solid fa-user text-emerald-400 text-sm"></i>
-                        <span class="text-xs sm:text-sm font-bold text-slate-200">Spieler 1:</span>
-                        <span id="p1-score" class="text-base sm:text-lg font-black text-emerald-400">0</span>
+                <div class="flex items-center gap-2">
+                    <div id="p1-card" class="px-3 py-1 rounded-lg border-2 transition-all flex items-center gap-1.5 border-emerald-500 bg-emerald-950/40">
+                        <i class="fa-solid fa-user text-emerald-400 text-xs"></i>
+                        <span class="text-xs font-bold text-slate-200">Spieler 1</span>
+                        <span id="p1-score" class="text-base font-black text-emerald-400 leading-none">0</span>
                     </div>
+                    <div id="p2-card" class="px-3 py-1 rounded-lg border-2 transition-all flex items-center gap-1.5 border-slate-800 bg-slate-950/40 opacity-60">
+                        <i class="fa-solid fa-user text-cyan-400 text-xs"></i>
+                        <span class="text-xs font-bold text-slate-200">Spieler 2</span>
+                        <span id="p2-score" class="text-base font-black text-cyan-400 leading-none">0</span>
+                    </div>
+                </div>
 
-                    <div id="p2-card" class="px-4 py-2 rounded-xl border-2 transition-all flex items-center gap-2 border-slate-800 bg-slate-950/40 opacity-60">
-                        <i class="fa-solid fa-user text-cyan-400 text-sm"></i>
-                        <span class="text-xs sm:text-sm font-bold text-slate-200">Spieler 2:</span>
-                        <span id="p2-score" class="text-base sm:text-lg font-black text-cyan-400">0</span>
-                    </div>
+                <div class="flex items-center gap-2 text-xs text-slate-300 min-w-0">
+                    <span id="turn-dot" class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse shrink-0"></span>
+                    <span id="turn-text" class="font-semibold truncate"></span>
                 </div>
             </div>
 
-            <!-- TURN & ACTION BANNER -->
-            <div id="turn-banner" class="mb-4 px-4 py-3 rounded-xl bg-emerald-950/50 border border-emerald-500/40 text-emerald-300 text-xs sm:text-sm font-medium flex flex-col md:flex-row items-center justify-between gap-3 w-full shadow-lg">
-                <div class="flex items-center gap-2.5">
-                    <span id="turn-dot" class="w-3 h-3 rounded-full bg-emerald-400 animate-pulse shrink-0"></span>
-                    <span id="turn-text" class="font-semibold text-slate-200">Spieler 1 ist am Zug (Wähle 1 blaue & 1 gelbe Karte)</span>
+            <!-- TWO EQUAL BOARDS -->
+            <div class="flex-1 min-h-0 grid grid-cols-2 gap-2 sm:gap-3">
+                <div class="min-h-0 flex flex-col bg-slate-900/80 rounded-xl p-2 border border-blue-500/30">
+                    <div class="flex items-center gap-2 mb-1.5 text-xs sm:text-sm font-bold text-blue-400 shrink-0">
+                        <span class="w-2.5 h-2.5 rounded-full bg-blue-500"></span> Fachbegriffe
+                    </div>
+                    <div id="term-grid" class="flex-1 min-h-0 grid gap-1.5 sm:gap-2"></div>
                 </div>
-
-                <!-- Action Buttons for user validation (Green Check / Red Cross) -->
-                <div id="action-buttons" class="hidden flex items-center gap-2 shrink-0 animate-fade-in w-full md:w-auto justify-end">
-                    <button onclick="handleUserDecision(true)" class="flex-1 md:flex-initial px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs sm:text-sm shadow-md transition flex items-center justify-center gap-1.5">
-                        <i class="fa-solid fa-check text-base"></i> Passt zusammen
-                    </button>
-                    <button onclick="handleUserDecision(false)" class="flex-1 md:flex-initial px-4 py-2 rounded-xl bg-rose-500 hover:bg-rose-400 text-white font-black text-xs sm:text-sm shadow-md transition flex items-center justify-center gap-1.5">
-                        <i class="fa-solid fa-xmark text-base"></i> Passt nicht
-                    </button>
+                <div class="min-h-0 flex flex-col bg-slate-900/80 rounded-xl p-2 border border-amber-500/30">
+                    <div class="flex items-center gap-2 mb-1.5 text-xs sm:text-sm font-bold text-amber-400 shrink-0">
+                        <span class="w-2.5 h-2.5 rounded-full bg-amber-500"></span> Erklärungen
+                    </div>
+                    <div id="expl-grid" class="flex-1 min-h-0 grid gap-1.5 sm:gap-2"></div>
                 </div>
             </div>
 
-            <!-- TWO-COLUMN MEMORY BOARD -->
-            <div class="flex-1 grid grid-cols-1 lg:grid-cols-2 gap-4 min-h-0 overflow-y-auto pr-1 custom-scrollbar">
-                
-                <!-- Left Side: Fachbegriffe (Blue) -->
-                <div class="bg-slate-900/80 rounded-2xl p-3 sm:p-4 border border-blue-500/30 flex flex-col">
-                    <div class="flex items-center justify-between mb-3 pb-2 border-b border-blue-500/20">
-                        <h3 class="text-sm sm:text-base font-bold text-blue-400 flex items-center gap-2">
-                            <span class="w-3 h-3 rounded-full bg-blue-500"></span> Fachbegriffe
-                        </h3>
-                        <span class="text-xs text-blue-300/70 font-semibold">Blaue Karten</span>
-                    </div>
-                    <div id="term-grid" class="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 gap-2.5 sm:gap-3"></div>
+            <!-- REVIEW OVERLAY: the two chosen cards fly in here -->
+            <div id="review-layer" class="hidden fixed inset-0 z-40">
+                <div id="review-backdrop" class="absolute inset-0 bg-slate-950/85 backdrop-blur-sm opacity-0 transition-opacity duration-500"></div>
+                <div id="review-msg" class="absolute left-0 right-0 text-center text-lg sm:text-2xl font-black text-slate-100 opacity-0 transition-opacity duration-300 pointer-events-none"></div>
+                <div id="review-actions" class="absolute left-1/2 -translate-x-1/2 flex items-center gap-3 opacity-0 pointer-events-none transition-opacity duration-300 z-[70]">
+                    <button onclick="handleUserDecision(true)" class="px-5 py-3 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-sm sm:text-base shadow-lg flex items-center gap-2">
+                        <i class="fa-solid fa-check"></i> Ja, Paar!
+                    </button>
+                    <button onclick="handleUserDecision(false)" class="px-5 py-3 rounded-xl bg-rose-500 hover:bg-rose-400 text-white font-black text-sm sm:text-base shadow-lg flex items-center gap-2">
+                        <i class="fa-solid fa-xmark"></i> Nein
+                    </button>
                 </div>
-
-                <!-- Right Side: Erklärungen (Yellow/Amber) -->
-                <div class="bg-slate-900/80 rounded-2xl p-3 sm:p-4 border border-amber-500/30 flex flex-col">
-                    <div class="flex items-center justify-between mb-3 pb-2 border-b border-amber-500/20">
-                        <h3 class="text-sm sm:text-base font-bold text-amber-400 flex items-center gap-2">
-                            <span class="w-3 h-3 rounded-full bg-amber-500"></span> Erklärungen
-                        </h3>
-                        <span class="text-xs text-amber-300/70 font-semibold">Gelbe Karten</span>
-                    </div>
-                    <div id="expl-grid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 gap-2.5 sm:gap-3"></div>
-                </div>
-
             </div>
         </section>
 
@@ -388,142 +389,128 @@
         }
 
         // --- MODE 2: MEMORY GAME LOGIC ---
+        const FLY_MS = 650;
+        let reviewCards = []; // [{wrap, inner, origin, card, side, index}]
+
         function startNewMemoryGame() {
             const pairSelect = document.getElementById('pair-select');
             totalPairs = parseInt(pairSelect.value, 10);
-            
-            // Select random pairs from dataset
+
             const shuffledDataset = [...rawDataset].sort(() => Math.random() - 0.5);
             const selectedPairs = shuffledDataset.slice(0, totalPairs);
 
-            // Construct Terms Array (Blue) and Explanations Array (Yellow)
-            termCards = selectedPairs.map((pair) => ({
-                pairId: pair.id,
-                type: 'term',
-                text: pair.front,
-                isFlipped: false,
-                isMatched: false
-            }));
-
-            explCards = selectedPairs.map((pair) => ({
-                pairId: pair.id,
-                type: 'expl',
-                text: pair.back,
-                isFlipped: false,
-                isMatched: false
-            }));
-
-            // Separately shuffle both arrays
+            termCards = selectedPairs.map((pair) => ({ pairId: pair.id, type: 'term', text: pair.front, isFlipped: false, isMatched: false }));
+            explCards = selectedPairs.map((pair) => ({ pairId: pair.id, type: 'expl', text: pair.back, isFlipped: false, isMatched: false }));
             termCards.sort(() => Math.random() - 0.5);
             explCards.sort(() => Math.random() - 0.5);
 
-            // Reset Game State
             flippedMemoryCards = [];
             activePlayer = 1;
             scores = { 1: 0, 2: 0 };
             matchedPairsCount = 0;
             isProcessingTurn = false;
 
-            document.getElementById('action-buttons').classList.add('hidden');
-
+            hideReview();
             updateScoreboardUI();
             renderMemoryGrids();
         }
 
+        function gridColumns() {
+            const narrow = window.innerWidth < 640;
+            if (totalPairs <= 6) return narrow ? 2 : 3;
+            if (totalPairs <= 8) return narrow ? 2 : 4;
+            if (totalPairs <= 12) return narrow ? 3 : 4;
+            return narrow ? 3 : 6;
+        }
+
         function renderMemoryGrids() {
-            const termGrid = document.getElementById('term-grid');
-            const explGrid = document.getElementById('expl-grid');
-            termGrid.innerHTML = '';
-            explGrid.innerHTML = '';
-
-            // Render Blue Term Cards (Left Grid)
-            termCards.forEach((card, index) => {
-                const cardEl = createMemoryCardElement(card, 'term', index);
-                termGrid.appendChild(cardEl);
-            });
-
-            // Render Yellow Explanation Cards (Right Grid)
-            explCards.forEach((card, index) => {
-                const cardEl = createMemoryCardElement(card, 'expl', index);
-                explGrid.appendChild(cardEl);
+            const cols = gridColumns();
+            const rows = Math.ceil(totalPairs / cols);
+            [['term-grid', termCards, 'term'], ['expl-grid', explCards, 'expl']].forEach(([id, cards, side]) => {
+                const grid = document.getElementById(id);
+                grid.innerHTML = '';
+                // identical grid geometry on both sides -> identical card sizes
+                grid.style.gridTemplateColumns = `repeat(${cols}, minmax(0, 1fr))`;
+                grid.style.gridTemplateRows = `repeat(${rows}, minmax(0, 1fr))`;
+                cards.forEach((card, index) => grid.appendChild(createMemoryCardElement(card, side, index)));
             });
         }
 
+        const SIDE_STYLE = {
+            term: { border: 'border-blue-600/70 hover:border-blue-400', icon: 'bg-blue-950 border-blue-500/50 text-blue-400', label: 'text-blue-400', text: 'Fachbegriff' },
+            expl: { border: 'border-amber-600/70 hover:border-amber-400', icon: 'bg-amber-950 border-amber-500/50 text-amber-400', label: 'text-amber-400', text: 'Erklärung' }
+        };
+
+        function coverHTML(side) {
+            const s = SIDE_STYLE[side];
+            return `<div class="w-7 h-7 sm:w-9 sm:h-9 rounded-lg border ${s.icon} flex items-center justify-center font-bold text-sm sm:text-base">?</div>
+                    <span class="hidden sm:block mt-1 text-[10px] font-bold uppercase tracking-wider ${s.label}">${s.text}</span>`;
+        }
+
+        const FLIP_MS = 450;   // flip on the board
+        const HOLD_MS = 500;   // cards rest face-up before flying / before turning back
+
+        // Fits the text into its box by shrinking the font (no scrolling, no overflow)
+        function fitText(p, box, max, min) {
+            let lo = min, hi = max;
+            const fits = (px) => {
+                p.style.fontSize = px + 'px';
+                return p.offsetHeight <= box.clientHeight && p.scrollWidth <= box.clientWidth;
+            };
+            if (fits(hi)) return hi;
+            while (hi - lo > 0.5) {
+                const mid = (lo + hi) / 2;
+                if (fits(mid)) lo = mid; else hi = mid;
+            }
+            p.style.fontSize = lo + 'px';
+            return lo;
+        }
+
+        // Face (revealed side) of a card. Used on the board and for the flying clone.
+        function makeFace(card, side) {
+            const isTerm = side === 'term';
+            const face = document.createElement('div');
+            face.className = `absolute inset-0 backface-hidden rotate-y-180 bg-slate-900 border-2 rounded-lg overflow-hidden flex shadow-xl ${isTerm ? 'border-blue-500' : 'border-amber-500'}`;
+            const box = document.createElement('div');
+            box.className = 'flex-1 min-w-0 min-h-0 overflow-hidden flex items-center justify-center';
+            const p = document.createElement('p');
+            p.className = `w-full text-center leading-tight ${isTerm ? 'font-black text-blue-100' : 'text-amber-100'}`;
+            p.style.hyphens = 'auto';
+            p.style.overflowWrap = 'break-word';
+            p.textContent = card.text;
+            box.appendChild(p);
+            face.appendChild(box);
+            return { face, box, p };
+        }
+
+        function setFacePadding(face, px) {
+            face.style.padding = px + 'px';
+        }
+
         function createMemoryCardElement(card, side, index) {
-            const cardEl = document.createElement('div');
-            cardEl.className = "min-h-[170px] sm:min-h-[200px] w-full perspective-1000 cursor-pointer select-none flex flex-col";
-            cardEl.onclick = () => handleMemoryCardClick(side, index);
-
-            const cardInnerEl = document.createElement('div');
-            cardInnerEl.id = `mem-card-${side}-${index}`;
-            cardInnerEl.className = `relative w-full h-full min-h-[170px] sm:min-h-[200px] transform-style-3d transition-transform duration-500 rounded-2xl ${card.isFlipped ? 'rotate-y-180' : ''}`;
-
-            // Card Front (Cover/Hidden)
-            const frontEl = document.createElement('div');
-            if (side === 'term') {
-                // BLUE CARD COVER
-                frontEl.className = "absolute w-full h-full backface-hidden bg-slate-900 border-2 border-blue-600/70 hover:border-blue-400 rounded-2xl flex flex-col items-center justify-center p-4 text-center shadow-lg transition-all group";
-                frontEl.innerHTML = `
-                    <div class="w-10 h-10 rounded-xl bg-blue-950 border border-blue-500/50 flex items-center justify-center text-blue-400 font-bold text-lg mb-2 group-hover:scale-110 transition-transform shadow-inner">
-                        ?
-                    </div>
-                    <span class="text-xs text-blue-400 font-bold uppercase tracking-wider">Fachbegriff</span>
-                    <span class="text-[10px] text-slate-500 mt-1">Klicken zum Aufdecken</span>
-                `;
-            } else {
-                // YELLOW CARD COVER
-                frontEl.className = "absolute w-full h-full backface-hidden bg-slate-900 border-2 border-amber-600/70 hover:border-amber-400 rounded-2xl flex flex-col items-center justify-center p-4 text-center shadow-lg transition-all group";
-                frontEl.innerHTML = `
-                    <div class="w-10 h-10 rounded-xl bg-amber-950 border border-amber-500/50 flex items-center justify-center text-amber-400 font-bold text-lg mb-2 group-hover:scale-110 transition-transform shadow-inner">
-                        ?
-                    </div>
-                    <span class="text-xs text-amber-400 font-bold uppercase tracking-wider">Erklärung</span>
-                    <span class="text-[10px] text-slate-500 mt-1">Klicken zum Aufdecken</span>
-                `;
+            const el = document.createElement('div');
+            el.id = `mem-card-${side}-${index}`;
+            if (card.isMatched) {
+                el.className = "rounded-lg border border-dashed border-slate-800/70 opacity-40";
+                return el;
             }
+            const s = SIDE_STYLE[side];
+            el.className = "min-h-0 perspective-1000 cursor-pointer";
 
-            // Card Back (Revealed Content)
-            const backEl = document.createElement('div');
-            if (side === 'term') {
-                backEl.className = `absolute w-full h-full backface-hidden rotate-y-180 rounded-2xl p-4 flex flex-col items-center justify-between text-center shadow-xl border-2 ${
-                    card.isMatched 
-                        ? 'bg-slate-900/90 border-blue-500/30 opacity-40' 
-                        : 'bg-slate-900 border-blue-500 shadow-blue-950/50'
-                }`;
-                backEl.innerHTML = `
-                    <span class="text-[10px] uppercase tracking-wider font-bold px-2.5 py-0.5 rounded-full bg-blue-950 text-blue-300 border border-blue-800/60">
-                        Fachbegriff
-                    </span>
-                    <div class="my-auto py-2 overflow-y-auto max-h-[120px] w-full custom-scrollbar flex items-center justify-center">
-                        <p class="text-sm sm:text-base font-extrabold text-blue-100 leading-snug">
-                            ${card.text}
-                        </p>
-                    </div>
-                    <div class="w-full text-right text-[10px] text-blue-400/30 font-mono">ID #${card.pairId}</div>
-                `;
-            } else {
-                backEl.className = `absolute w-full h-full backface-hidden rotate-y-180 rounded-2xl p-4 flex flex-col items-center justify-between text-center shadow-xl border-2 ${
-                    card.isMatched 
-                        ? 'bg-slate-900/90 border-amber-500/30 opacity-40' 
-                        : 'bg-slate-900 border-amber-500 shadow-amber-950/50'
-                }`;
-                backEl.innerHTML = `
-                    <span class="text-[10px] uppercase tracking-wider font-bold px-2.5 py-0.5 rounded-full bg-amber-950 text-amber-300 border border-amber-800/60">
-                        Erklärung
-                    </span>
-                    <div class="my-auto py-2 overflow-y-auto max-h-[120px] w-full pr-1 custom-scrollbar flex items-center justify-center">
-                        <p class="text-xs sm:text-sm text-amber-100 leading-relaxed font-normal text-left">
-                            ${card.text}
-                        </p>
-                    </div>
-                    <div class="w-full text-right text-[10px] text-amber-400/30 font-mono">ID #${card.pairId}</div>
-                `;
-            }
+            const inner = document.createElement('div');
+            inner.className = 'relative w-full h-full transform-style-3d';
+            inner.style.transition = `transform ${FLIP_MS}ms ease`;
 
-            cardInnerEl.appendChild(frontEl);
-            cardInnerEl.appendChild(backEl);
-            cardEl.appendChild(cardInnerEl);
-            return cardEl;
+            const cover = document.createElement('div');
+            cover.className = `absolute inset-0 backface-hidden bg-slate-900 border-2 ${s.border} rounded-lg flex flex-col items-center justify-center shadow-md transition-colors`;
+            cover.innerHTML = coverHTML(side);
+
+            const f = makeFace(card, side);
+            setFacePadding(f.face, 3);
+            inner.append(cover, f.face);
+            el.appendChild(inner);
+            el.onclick = () => handleMemoryCardClick(side, index);
+            return el;
         }
 
         function handleMemoryCardClick(side, index) {
@@ -531,97 +518,203 @@
             const card = cardList[index];
 
             if (isProcessingTurn || card.isFlipped || card.isMatched) return;
+            if (flippedMemoryCards.length === 1 && flippedMemoryCards[0].side === side) return;
 
-            // Enforce selecting 1 Blue card and 1 Yellow card per turn
-            if (flippedMemoryCards.length === 1 && flippedMemoryCards[0].side === side) {
-                return; // Prevent picking from the same side twice
-            }
-
-            // Flip Card
             card.isFlipped = true;
             flippedMemoryCards.push({ side, index, card });
-            
-            const cardInnerEl = document.getElementById(`mem-card-${side}-${index}`);
-            if (cardInnerEl) cardInnerEl.classList.add('rotate-y-180');
 
-            // When both 1 blue and 1 yellow card are flipped
+            // reveal immediately, so the player can look for the matching card
+            const inner = document.getElementById(`mem-card-${side}-${index}`).firstChild;
+            const face = inner.lastChild;
+            fitText(face.querySelector('p'), face.firstChild, 14, 3);
+            inner.style.transform = 'rotateY(180deg)';
+
             if (flippedMemoryCards.length === 2) {
                 isProcessingTurn = true;
-                
-                // Show Green Checkmark & Red Cross buttons
-                const actionButtons = document.getElementById('action-buttons');
-                actionButtons.classList.remove('hidden');
-                
-                const turnText = document.getElementById('turn-text');
-                turnText.textContent = `Glaubst du, diese beiden Karten passen zusammen?`;
+                setTimeout(startReview, FLIP_MS + HOLD_MS);
             }
         }
 
-        // USER DECISION HANDLER (Green Checkmark vs. Red Cross)
-        function handleUserDecision(userThinksMatched) {
-            if (flippedMemoryCards.length !== 2) return;
+        // --- REVIEW OVERLAY (the two chosen cards fly to the middle) ---
+        function setRect(el, r) {
+            el.style.left = r.left + 'px';
+            el.style.top = r.top + 'px';
+            el.style.width = r.width + 'px';
+            el.style.height = r.height + 'px';
+        }
 
-            const actionButtons = document.getElementById('action-buttons');
-            actionButtons.classList.add('hidden');
+        // Clone of a revealed board card; size, font size and padding animate together.
+        function buildFlyCard(card, side, origin, target) {
+            const isTerm = side === 'term';
+            const wrap = document.createElement('div');
+            wrap.style.position = 'fixed';
+            wrap.style.zIndex = '60';
+
+            const f = makeFace(card, side);
+            f.face.style.transform = 'none'; // face-up directly, no flip while flying
+            f.face.classList.remove('rotate-y-180', 'backface-hidden');
+            wrap.appendChild(f.face);
+            document.getElementById('review-layer').appendChild(wrap);
+
+            // measure the best font size at the target and at the origin size (no transitions yet)
+            const pad = (r) => Math.max(3, Math.min(r.width, r.height) * 0.07);
+            const measure = (r, max) => {
+                setRect(wrap, r);
+                setFacePadding(f.face, pad(r));
+                return fitText(f.p, f.box, max, 4);
+            };
+            const fontTarget = measure(target, isTerm ? 40 : 24);
+            const fontOrigin = measure(origin, 14);
+            wrap.getBoundingClientRect(); // commit start state
+
+            const ease = `${FLY_MS}ms cubic-bezier(.2,.8,.2,1)`;
+            wrap.style.transition = `left ${ease},top ${ease},width ${ease},height ${ease},opacity 400ms`;
+            f.face.style.transition = `padding ${ease}`;
+            f.p.style.transition = `font-size ${ease}`;
+
+            return {
+                wrap, face: f.face, p: f.p, fontOrigin, fontTarget,
+                padOrigin: pad(origin), padTarget: pad(target)
+            };
+        }
+
+        function startReview() {
+            const layer = document.getElementById('review-layer');
+            const backdrop = document.getElementById('review-backdrop');
+            const msg = document.getElementById('review-msg');
+            const actions = document.getElementById('review-actions');
+
+            const vw = window.innerWidth, vh = window.innerHeight;
+            const gap = 16;
+            const cardW = Math.min((vw - 3 * gap) / 2, 460);
+            const cardH = Math.min(vh * 0.58, 400);
+            const top = Math.max(60, (vh - cardH) / 2 - 30);
+            const targets = {
+                term: { left: vw / 2 - gap / 2 - cardW, top, width: cardW, height: cardH },
+                expl: { left: vw / 2 + gap / 2, top, width: cardW, height: cardH }
+            };
+
+            msg.style.top = Math.max(8, top - 52) + 'px';
+            msg.textContent = 'Passen diese beiden Karten zusammen?';
+            actions.style.top = (top + cardH + 18) + 'px';
+
+            layer.classList.remove('hidden');
+            reviewCards = flippedMemoryCards.map(({ side, index, card }) => {
+                const boardEl = document.getElementById(`mem-card-${side}-${index}`);
+                const r = boardEl.getBoundingClientRect();
+                const origin = { left: r.left, top: r.top, width: r.width, height: r.height };
+                const fly = buildFlyCard(card, side, origin, targets[side]);
+                boardEl.style.visibility = 'hidden';
+                return { ...fly, origin, target: targets[side], card, side, index, boardEl };
+            });
+
+            // two frames so the start state is committed before transitioning
+            requestAnimationFrame(() => requestAnimationFrame(() => {
+                backdrop.style.opacity = '1';
+                reviewCards.forEach((rc) => {
+                    setRect(rc.wrap, rc.target);
+                    rc.p.style.fontSize = rc.fontTarget + 'px';
+                    setFacePadding(rc.face, rc.padTarget);
+                });
+                setTimeout(() => {
+                    msg.style.opacity = '1';
+                    actions.style.opacity = '1';
+                    actions.style.pointerEvents = 'auto';
+                }, FLY_MS - 100);
+            }));
+        }
+
+        function hideReview() {
+            reviewCards.forEach((rc) => rc.wrap.remove());
+            reviewCards = [];
+            document.getElementById('review-layer').classList.add('hidden');
+            document.getElementById('review-backdrop').style.opacity = '0';
+            document.getElementById('review-msg').style.opacity = '0';
+            const actions = document.getElementById('review-actions');
+            actions.style.opacity = '0';
+            actions.style.pointerEvents = 'none';
+        }
+
+        // USER DECISION HANDLER (Ja / Nein)
+        function handleUserDecision(userThinksMatched) {
+            if (flippedMemoryCards.length !== 2 || reviewCards.length !== 2) return;
+
+            const actions = document.getElementById('review-actions');
+            actions.style.opacity = '0';
+            actions.style.pointerEvents = 'none';
 
             const [first, second] = flippedMemoryCards;
-            const actuallyMatches = (first.card.pairId === second.card.pairId);
-            const turnText = document.getElementById('turn-text');
+            const actuallyMatches = first.card.pairId === second.card.pairId;
+            const success = userThinksMatched && actuallyMatches;
+            const msg = document.getElementById('review-msg');
 
-            if (userThinksMatched) {
-                // USER CLICKED GREEN CHECKMARK ("Passt zusammen")
-                if (actuallyMatches) {
-                    // CORRECT DECISION
-                    first.card.isMatched = true;
-                    second.card.isMatched = true;
-                    scores[activePlayer]++;
-                    matchedPairsCount++;
-
-                    turnText.textContent = `Richtig! 🎉 Die Zuordnung stimmt. Spieler ${activePlayer} bekommt 1 Punkt und bleibt am Zug!`;
-
-                    renderMemoryGrids();
-
-                    flippedMemoryCards = [];
-                    isProcessingTurn = false;
-
-                    updateScoreboardUI();
-
-                    if (matchedPairsCount === totalPairs) {
-                        setTimeout(showWinnerModal, 700);
-                    }
-                } else {
-                    // WRONG DECISION
-                    turnText.textContent = `Falsch gedacht! ❌ Die Karten passen leider nicht zusammen. Der nächste Spieler ist dran!`;
-
-                    setTimeout(() => {
-                        unflipCurrentPairAndSwitchTurn(first, second);
-                    }, 1600);
-                }
+            if (success) {
+                msg.textContent = `Richtig! 🎉 Punkt für Spieler ${activePlayer}`;
+            } else if (userThinksMatched) {
+                msg.textContent = 'Leider falsch ❌ Das war kein Paar';
             } else {
-                // USER CLICKED RED CROSS ("Passt nicht")
-                turnText.textContent = `Alles klar! 🔄 Die Karten werden wieder umgedreht. Der nächste Spieler ist am Zug.`;
-
-                setTimeout(() => {
-                    unflipCurrentPairAndSwitchTurn(first, second);
-                }, 1300);
+                msg.textContent = actuallyMatches ? 'Schade, das war ein Paar! 😬' : 'Okay, kein Paar 🔄';
             }
+            msg.style.opacity = '1';
+
+            setTimeout(() => (success ? flyToPlayer(first, second) : flyBack(first, second)), success ? 900 : 1500);
         }
 
-        function unflipCurrentPairAndSwitchTurn(first, second) {
-            first.card.isFlipped = false;
-            second.card.isFlipped = false;
+        function flyToPlayer(first, second) {
+            const chip = document.getElementById(`p${activePlayer}-card`).getBoundingClientRect();
+            const w = 40, h = 28;
+            const target = { left: chip.left + chip.width / 2 - w / 2, top: chip.top + chip.height / 2 - h / 2, width: w, height: h };
+            document.getElementById('review-msg').style.opacity = '0';
+            document.getElementById('review-backdrop').style.opacity = '0';
+            reviewCards.forEach((rc) => {
+                setRect(rc.wrap, target);
+                rc.p.style.fontSize = '3px';
+                setFacePadding(rc.face, 1);
+                rc.wrap.style.opacity = '0.2';
+            });
 
-            const el1 = document.getElementById(`mem-card-${first.side}-${first.index}`);
-            const el2 = document.getElementById(`mem-card-${second.side}-${second.index}`);
-            if (el1) el1.classList.remove('rotate-y-180');
-            if (el2) el2.classList.remove('rotate-y-180');
+            setTimeout(() => {
+                first.card.isMatched = true;
+                second.card.isMatched = true;
+                first.card.isFlipped = second.card.isFlipped = false;
+                scores[activePlayer]++;
+                matchedPairsCount++;
+                flippedMemoryCards = [];
+                hideReview();
+                renderMemoryGrids();
+                updateScoreboardUI();
+                document.getElementById(`p${activePlayer}-score`).animate(
+                    [{ transform: 'scale(1)' }, { transform: 'scale(1.8)' }, { transform: 'scale(1)' }], { duration: 450 });
+                isProcessingTurn = false;
+                if (matchedPairsCount === totalPairs) setTimeout(showWinnerModal, 600);
+            }, FLY_MS + 50);
+        }
 
-            // Switch Active Player
-            activePlayer = activePlayer === 1 ? 2 : 1;
-            flippedMemoryCards = [];
-            isProcessingTurn = false;
+        function flyBack(first, second) {
+            document.getElementById('review-msg').style.opacity = '0';
+            document.getElementById('review-backdrop').style.opacity = '0';
+            const boardEls = reviewCards.map((rc) => rc.boardEl);
+            reviewCards.forEach((rc) => {
+                setRect(rc.wrap, rc.origin);
+                rc.p.style.fontSize = rc.fontOrigin + 'px';
+                setFacePadding(rc.face, rc.padOrigin);
+            });
 
-            updateScoreboardUI();
+            // cards land face-up on their spot, rest for HOLD_MS, then turn back
+            setTimeout(() => {
+                boardEls.forEach((el) => { el.style.visibility = ''; });
+                hideReview();
+                setTimeout(() => {
+                    boardEls.forEach((el) => { el.firstChild.style.transform = ''; });
+                    setTimeout(() => {
+                        first.card.isFlipped = second.card.isFlipped = false;
+                        flippedMemoryCards = [];
+                        activePlayer = activePlayer === 1 ? 2 : 1;
+                        updateScoreboardUI();
+                        isProcessingTurn = false;
+                    }, FLIP_MS + 50);
+                }, HOLD_MS);
+            }, FLY_MS + 50);
         }
 
         function updateScoreboardUI() {
@@ -630,29 +723,20 @@
 
             const p1Card = document.getElementById('p1-card');
             const p2Card = document.getElementById('p2-card');
-            const turnBanner = document.getElementById('turn-banner');
-            const turnText = document.getElementById('turn-text');
             const turnDot = document.getElementById('turn-dot');
+            const base = "px-3 py-1 rounded-lg border-2 transition-all flex items-center gap-1.5 ";
+            const idle = "border-slate-800 bg-slate-950/40 opacity-60";
 
             if (activePlayer === 1) {
-                p1Card.className = "px-4 py-2 rounded-xl border-2 transition-all flex items-center gap-2 border-emerald-500 bg-emerald-950/40 opacity-100 shadow-md scale-105";
-                p2Card.className = "px-4 py-2 rounded-xl border-2 transition-all flex items-center gap-2 border-slate-800 bg-slate-950/40 opacity-60 scale-100";
-                
-                turnBanner.className = "mb-4 px-4 py-3 rounded-xl bg-emerald-950/50 border border-emerald-500/40 text-emerald-300 text-xs sm:text-sm font-medium flex flex-col md:flex-row items-center justify-between gap-3 w-full shadow-lg";
-                turnDot.className = "w-3 h-3 rounded-full bg-emerald-400 animate-pulse shrink-0";
-                if (flippedMemoryCards.length < 2) {
-                    turnText.textContent = "Spieler 1 ist am Zug (Wähle 1 blaue & 1 gelbe Karte)";
-                }
+                p1Card.className = base + "border-emerald-500 bg-emerald-950/40 shadow-md";
+                p2Card.className = base + idle;
+                turnDot.className = "w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse shrink-0";
             } else {
-                p2Card.className = "px-4 py-2 rounded-xl border-2 transition-all flex items-center gap-2 border-cyan-500 bg-cyan-950/40 opacity-100 shadow-md scale-105";
-                p1Card.className = "px-4 py-2 rounded-xl border-2 transition-all flex items-center gap-2 border-slate-800 bg-slate-950/40 opacity-60 scale-100";
-
-                turnBanner.className = "mb-4 px-4 py-3 rounded-xl bg-cyan-950/50 border border-cyan-500/40 text-cyan-300 text-xs sm:text-sm font-medium flex flex-col md:flex-row items-center justify-between gap-3 w-full shadow-lg";
-                turnDot.className = "w-3 h-3 rounded-full bg-cyan-400 animate-pulse shrink-0";
-                if (flippedMemoryCards.length < 2) {
-                    turnText.textContent = "Spieler 2 ist am Zug (Wähle 1 blaue & 1 gelbe Karte)";
-                }
+                p2Card.className = base + "border-cyan-500 bg-cyan-950/40 shadow-md";
+                p1Card.className = base + idle;
+                turnDot.className = "w-2.5 h-2.5 rounded-full bg-cyan-400 animate-pulse shrink-0";
             }
+            document.getElementById('turn-text').textContent = `Spieler ${activePlayer} ist dran: eine blaue & eine gelbe Karte wählen`;
         }
 
         function showWinnerModal() {
@@ -693,6 +777,31 @@
                 prevCard();
             }
         });
+
+        // --- VOLLBILD (iPad-Safari: nur mit webkit-Präfix; iPhone unterstützt es nicht -> Button bleibt versteckt) ---
+        const fsRoot = document.documentElement;
+        const fsRequest = fsRoot.requestFullscreen || fsRoot.webkitRequestFullscreen;
+        const fsElement = () => document.fullscreenElement || document.webkitFullscreenElement;
+
+        function toggleFullscreen() {
+            if (fsElement()) {
+                (document.exitFullscreen || document.webkitExitFullscreen).call(document);
+            } else if (fsRequest) {
+                const p = fsRequest.call(fsRoot);
+                if (p && p.catch) p.catch(() => {});
+            }
+        }
+
+        function updateFullscreenIcon() {
+            const icon = document.getElementById('fullscreen-icon');
+            icon.className = fsElement() ? 'fa-solid fa-compress' : 'fa-solid fa-expand';
+        }
+
+        if (fsRequest) {
+            document.getElementById('fullscreen-btn').classList.remove('hidden');
+            document.addEventListener('fullscreenchange', updateFullscreenIcon);
+            document.addEventListener('webkitfullscreenchange', updateFullscreenIcon);
+        }
 
         // INITIAL STARTUP
         renderFlashcard();
