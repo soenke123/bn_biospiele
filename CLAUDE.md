@@ -7,7 +7,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 German-language collection of biology study games, built like the sibling repo `bi_minis`: the root `index.html` is the tile overview (with QR-code buttons) and lists every game in a hand-maintained `projects` array (`{folder, name, created}`, newest first). Each game is a single static file in its own folder:
 
 - `evolutionsfaktoren/index.html` – "Evolutionsfaktoren – Interaktives Glossar & Memory" (described in detail below).
-- `koevolution/index.html` – "Wer gehört zu wem?": a one-player pairing game. Data is the `coevolutionPairs` array (`{id, type, title, description, item1, item2}`, each item `{name, icon}`). Icons are inline SVGs built with the `icon(bg, body)` helper; all gradients and clip paths live once in the shared hidden `<svg><defs>` at the top of `<body>` (so IDs stay unique while icons are rendered in the grid and in the modals). Reuse those defs for new icons instead of adding `<defs>` inside an icon.
+- `wer-gehoert-zu-wem/index.html` – "Wer gehört zu wem?": a one-player pairing game. Data is the `coevolutionPairs` array (`{id, type, title, description, item1, item2}`, each item `{name, icon}`). Icons are inline SVGs built with the `icon(bg, body)` helper; all gradients and clip paths live once in the shared hidden `<svg><defs>` at the top of `<body>` (so IDs stay unique while icons are rendered in the grid and in the modals). Reuse those defs for new icons instead of adding `<defs>` inside an icon.
 
 To add a game: create `<folder>/index.html`, add a home link to `../index.html`, and add an entry to `projects` in the root `index.html`.
 
