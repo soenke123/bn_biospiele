@@ -6,7 +6,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <title>Wer gehört zu wem? - Koevolution</title>
+    <title>Wer gehört zu wem?</title>
     <!-- Tailwind CSS (lokal, offline) -->
     <script src="../vendor/tailwind.js"></script>
     <!-- Font Awesome (lokal, nur fa-solid) -->
@@ -193,11 +193,11 @@
     <!-- Footer -->
     <footer class="max-w-7xl mx-auto w-full mt-4 text-center text-xs text-slate-400">
         <p class="bg-slate-900/40 py-2 px-4 rounded-xl border border-slate-800 inline-block backdrop-blur-sm">
-            Finde alle 7 Koevolutions-Paare durch Auswählen der zusammengehörenden Individuen.
+            Finde alle 7 Paare durch Auswählen der zusammengehörenden Individuen.
         </p>
     </footer>
 
-    <!-- Coevolution Knowledge Modal (Appears on match) -->
+    <!-- Info Modal (Appears on match) -->
     <div id="info-modal" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4 hidden opacity-0 transition-opacity duration-300">
         <div class="bg-slate-900 border border-teal-500/40 rounded-3xl max-w-lg w-full p-6 md:p-8 shadow-2xl transform scale-95 transition-transform duration-300 relative overflow-hidden" id="modal-content">
             <div class="absolute -top-24 -right-24 w-48 h-48 bg-teal-500/20 rounded-full blur-3xl pointer-events-none"></div>
@@ -205,7 +205,7 @@
 
             <div class="flex items-center gap-3 mb-4">
                 <span id="modal-badge" class="px-3 py-1 bg-teal-500/20 border border-teal-400/30 text-teal-300 font-semibold text-xs rounded-full uppercase tracking-wider">
-                    Koevolution erkannt
+                    Paar erkannt
                 </span>
             </div>
 
@@ -243,7 +243,7 @@
             </div>
 
             <h2 class="text-2xl md:text-3xl font-extrabold text-white mb-1">Hervorragend gelöst!</h2>
-            <p class="text-slate-400 text-sm mb-4">Du hast alle koevolutiven Beziehungen erfolgreich entschlüsselt.</p>
+            <p class="text-slate-400 text-sm mb-4">Du hast alle Beziehungen erfolgreich entschlüsselt.</p>
 
             <div class="grid grid-cols-2 gap-3 mb-6 bg-slate-950/60 p-4 rounded-2xl border border-slate-800">
                 <div>
@@ -257,7 +257,7 @@
             </div>
 
             <div class="flex-grow overflow-y-auto pr-2 text-left space-y-3 mb-6 bg-slate-950/40 p-3 rounded-2xl border border-slate-800/80">
-                <h4 class="text-xs uppercase tracking-wider text-slate-400 font-bold px-1 mb-2">Gelernte Koevolutions-Mechanismen:</h4>
+                <h4 class="text-xs uppercase tracking-wider text-slate-400 font-bold px-1 mb-2">Gelernte Beziehungen:</h4>
                 <div id="summary-list" class="space-y-2 text-xs"></div>
             </div>
 
@@ -277,7 +277,7 @@
         </svg>`;
 
         // Data Structure for 14 Entities / 7 Pairs
-        const coevolutionPairs = [
+        const matchPairs = [
             {
                 id: 'mimikry',
                 type: 'Bates’sche Mimikry',
@@ -344,7 +344,7 @@
                 id: 'pollination',
                 type: 'Mutualistische Bestäubung',
                 title: 'Passgenaue Bestäubungssymbiose',
-                description: 'Der Schnabel des Kolibris hat sich im Laufe der Koevolution perfekt an die tief geschwungene Blütenform der Helikonie angepasst. Der Kolibri erhält Nektar, während die Pflanze zielgerichtet bestäubt wird.',
+                description: 'Der Schnabel des Kolibris hat sich im Laufe der Evolution perfekt an die tief geschwungene Blütenform der Helikonie angepasst. Der Kolibri erhält Nektar, während die Pflanze zielgerichtet bestäubt wird.',
                 item1: {
                     name: 'Kolibri',
                     icon: icon('bg-sky', `
@@ -442,7 +442,7 @@
                 id: 'host_virus',
                 type: 'Wirt-Parasit-Wettrüsten',
                 title: 'Antagonistisches Immunsystem-Wettrüsten',
-                description: 'Mensch und Viren stehen in einer dynamischen antagonistischen Koevolution. Das menschliche Immunsystem entwickelt kontinuierlich Abwehrmechanismen (z. B. spezifische Antikörper), während Viren durch hohe Mutationsraten ihre Oberflächenproteine anpassen.',
+                description: 'Mensch und Viren stehen in einem ständigen evolutiven Wettrüsten. Das menschliche Immunsystem entwickelt kontinuierlich Abwehrmechanismen (z. B. spezifische Antikörper), während Viren durch hohe Mutationsraten ihre Oberflächenproteine anpassen.',
                 item1: {
                     name: 'Mensch',
                     icon: icon('bg-lab', `
@@ -595,7 +595,7 @@
             },
             {
                 id: 'grazing',
-                type: 'Herbivorie-Koevolution',
+                type: 'Herbivorie',
                 title: 'Gräser & Grasfresser',
                 description: 'Gräser lagerten abrasive Kieselsäure (Phytolithe) ein, um sich vor Fraß zu schützen. Pferde entwickelten als Reaktion hochkronige, widerstandsfähige Zähne und spezialisierte Hufe für die Steppenlandschaft.',
                 item1: {
@@ -786,11 +786,11 @@
             attempts = 0;
 
             attemptsCountEl.textContent = '0';
-            pairsCountEl.textContent = `0 / ${coevolutionPairs.length}`;
+            pairsCountEl.textContent = `0 / ${matchPairs.length}`;
             progressBar.style.width = '0%';
 
             let deck = [];
-            coevolutionPairs.forEach(pair => {
+            matchPairs.forEach(pair => {
                 deck.push({
                     cardUniqueId: pair.id + '_1',
                     pairId: pair.id,
@@ -887,8 +887,8 @@
                 dot.classList.add('shadow-lg', 'shadow-emerald-400');
             });
 
-            const progress = (matchedPairIds.length / coevolutionPairs.length) * 100;
-            pairsCountEl.textContent = `${matchedPairIds.length} / ${coevolutionPairs.length}`;
+            const progress = (matchedPairIds.length / matchPairs.length) * 100;
+            pairsCountEl.textContent = `${matchedPairIds.length} / ${matchPairs.length}`;
             progressBar.style.width = `${progress}%`;
 
             setTimeout(() => {
@@ -936,7 +936,7 @@
 
             setTimeout(() => {
                 infoModal.classList.add('hidden');
-                if (matchedPairIds.length === coevolutionPairs.length) {
+                if (matchedPairIds.length === matchPairs.length) {
                     showVictoryModal();
                 }
             }, 300);
@@ -950,7 +950,7 @@
             finalAttemptsEl.textContent = attempts;
 
             summaryListEl.innerHTML = '';
-            coevolutionPairs.forEach(pair => {
+            matchPairs.forEach(pair => {
                 const item = document.createElement('div');
                 item.className = 'p-2.5 rounded-xl bg-slate-900 border border-slate-800 flex items-start gap-3';
                 item.innerHTML = `
