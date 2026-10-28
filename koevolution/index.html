@@ -1,0 +1,996 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>Wer gehört zu wem? - Koevolution</title>
+    <!-- Tailwind CSS (lokal, offline) -->
+    <script src="../vendor/tailwind.js"></script>
+    <!-- Font Awesome (lokal, nur fa-solid) -->
+    <link rel="stylesheet" href="../vendor/fontawesome/css/all.min.css">
+    <style>
+        /* Touch: kein Doppeltipp-Zoom, kein graues Tap-Highlight, kein Long-Press-Menü */
+        html, body, button {
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
+            -webkit-touch-callout: none;
+        }
+
+        body {
+            font-family: 'Plus Jakarta Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f766e 100%);
+            min-height: 100vh;
+            color: #f8fafc;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        .card-glow {
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+        }
+
+        .card-hover {
+            transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        .card-hover:hover {
+            transform: translateY(-6px) scale(1.02);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.4), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        }
+
+        .card-selected {
+            transform: translateY(-8px) scale(1.04);
+            box-shadow: 0 0 25px rgba(45, 212, 191, 0.6);
+        }
+
+        .card-matched {
+            animation: matchPulse 0.6s ease-out forwards;
+        }
+
+        .card-error {
+            animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both;
+        }
+
+        @keyframes matchPulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); box-shadow: 0 0 30px rgba(52, 211, 153, 0.8); }
+            100% { transform: scale(1); opacity: 0.85; filter: grayscale(0.2); }
+        }
+
+        @keyframes shake {
+            10%, 90% { transform: translate3d(-2px, 0, 0); }
+            20%, 80% { transform: translate3d(4px, 0, 0); }
+            30%, 50%, 70% { transform: translate3d(-6px, 0, 0); }
+            40%, 60% { transform: translate3d(6px, 0, 0); }
+        }
+
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(15, 23, 42, 0.6);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #0d9488;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #14b8a6;
+        }
+    </style>
+</head>
+<body class="flex flex-col min-h-screen justify-between overflow-x-hidden p-3 md:p-6">
+    <!-- Gemeinsame Farbverläufe & Masken für alle Tier-Icons (einmal im Dokument, damit IDs eindeutig sind) -->
+    <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+        <defs>
+            <!-- Lebensraum-Hintergründe -->
+            <radialGradient id="bg-sky" cx="40%" cy="35%" r="70%"><stop offset="0%" stop-color="#f0f9ff"/><stop offset="100%" stop-color="#7dd3fc"/></radialGradient>
+            <radialGradient id="bg-sea" cx="40%" cy="30%" r="75%"><stop offset="0%" stop-color="#a5f3fc"/><stop offset="100%" stop-color="#0891b2"/></radialGradient>
+            <radialGradient id="bg-meadow" cx="40%" cy="30%" r="75%"><stop offset="0%" stop-color="#fefce8"/><stop offset="100%" stop-color="#bef264"/></radialGradient>
+            <radialGradient id="bg-flower" cx="40%" cy="35%" r="70%"><stop offset="0%" stop-color="#fff7ed"/><stop offset="100%" stop-color="#86efac"/></radialGradient>
+            <radialGradient id="bg-lab" cx="40%" cy="35%" r="70%"><stop offset="0%" stop-color="#faf5ff"/><stop offset="100%" stop-color="#c4b5fd"/></radialGradient>
+            <radialGradient id="bg-dusk" cx="40%" cy="30%" r="75%"><stop offset="0%" stop-color="#fef3c7"/><stop offset="100%" stop-color="#fdba74"/></radialGradient>
+            <clipPath id="clip-round"><circle cx="50" cy="50" r="47"/></clipPath>
+
+            <!-- Insekten -->
+            <radialGradient id="g-eye-red" cx="35%" cy="30%" r="70%"><stop offset="0%" stop-color="#f87171"/><stop offset="60%" stop-color="#9a3412"/><stop offset="100%" stop-color="#431407"/></radialGradient>
+            <linearGradient id="g-yellow" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#ca8a04"/><stop offset="45%" stop-color="#fde047"/><stop offset="100%" stop-color="#ca8a04"/></linearGradient>
+            <linearGradient id="g-wing" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#ffffff" stop-opacity="0.9"/><stop offset="100%" stop-color="#bae6fd" stop-opacity="0.45"/></linearGradient>
+            <clipPath id="clip-hover"><ellipse cx="50" cy="66" rx="13" ry="21"/></clipPath>
+            <clipPath id="clip-wasp"><path d="M50 52 C62 53 64 69 57 82 L50 94 L43 82 C36 69 38 53 50 52 Z"/></clipPath>
+
+            <!-- Kolibri & Helikonie -->
+            <linearGradient id="g-humm" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#6ee7b7"/><stop offset="50%" stop-color="#059669"/><stop offset="100%" stop-color="#0e7490"/></linearGradient>
+            <linearGradient id="g-gorget" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#fb7185"/><stop offset="100%" stop-color="#be123c"/></linearGradient>
+            <linearGradient id="g-bract" x1="0" y1="1" x2="1" y2="0"><stop offset="0%" stop-color="#b91c1c"/><stop offset="65%" stop-color="#ef4444"/><stop offset="100%" stop-color="#f59e0b"/></linearGradient>
+            <linearGradient id="g-leaf" x1="0" y1="1" x2="1" y2="0"><stop offset="0%" stop-color="#14532d"/><stop offset="100%" stop-color="#22c55e"/></linearGradient>
+
+            <!-- Meer -->
+            <linearGradient id="g-clown" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#fdba74"/><stop offset="45%" stop-color="#f97316"/><stop offset="100%" stop-color="#c2410c"/></linearGradient>
+            <clipPath id="clip-clown"><ellipse cx="52" cy="50" rx="30" ry="17"/></clipPath>
+            <linearGradient id="g-tent" gradientUnits="userSpaceOnUse" x1="0" y1="75" x2="0" y2="15"><stop offset="0%" stop-color="#be185d"/><stop offset="60%" stop-color="#f472b6"/><stop offset="100%" stop-color="#e9d5ff"/></linearGradient>
+            <linearGradient id="g-column" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#831843"/><stop offset="50%" stop-color="#db2777"/><stop offset="100%" stop-color="#831843"/></linearGradient>
+
+            <!-- Mensch & Virus -->
+            <linearGradient id="g-skin" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#ffedd5"/><stop offset="100%" stop-color="#fdba74"/></linearGradient>
+            <linearGradient id="g-hair" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#78350f"/><stop offset="100%" stop-color="#292524"/></linearGradient>
+            <linearGradient id="g-shirt" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#38bdf8"/><stop offset="100%" stop-color="#0369a1"/></linearGradient>
+            <radialGradient id="g-virus" cx="38%" cy="35%" r="70%"><stop offset="0%" stop-color="#bef264"/><stop offset="55%" stop-color="#65a30d"/><stop offset="100%" stop-color="#365314"/></radialGradient>
+
+            <!-- Star & Kirschen -->
+            <linearGradient id="g-star" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#4c1d95"/><stop offset="45%" stop-color="#1e1b4b"/><stop offset="75%" stop-color="#065f46"/><stop offset="100%" stop-color="#0f172a"/></linearGradient>
+            <radialGradient id="g-cherry" cx="35%" cy="30%" r="70%"><stop offset="0%" stop-color="#fca5a5"/><stop offset="35%" stop-color="#dc2626"/><stop offset="100%" stop-color="#450a0a"/></radialGradient>
+
+            <!-- Säugetiere -->
+            <linearGradient id="g-rabbit" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#d6b38a"/><stop offset="55%" stop-color="#a47148"/><stop offset="100%" stop-color="#6b4423"/></linearGradient>
+            <linearGradient id="g-fox" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#fb923c"/><stop offset="100%" stop-color="#c2410c"/></linearGradient>
+            <linearGradient id="g-horse" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#b45309"/><stop offset="60%" stop-color="#92400e"/><stop offset="100%" stop-color="#5c2a0a"/></linearGradient>
+
+            <!-- Gras -->
+            <linearGradient id="g-blade" x1="0" y1="1" x2="0" y2="0"><stop offset="0%" stop-color="#166534"/><stop offset="100%" stop-color="#4ade80"/></linearGradient>
+            <linearGradient id="g-blade2" x1="0" y1="1" x2="0" y2="0"><stop offset="0%" stop-color="#14532d"/><stop offset="100%" stop-color="#84cc16"/></linearGradient>
+        </defs>
+    </svg>
+
+    <!-- Header Section -->
+    <header class="max-w-7xl mx-auto w-full mb-4">
+        <div class="bg-slate-900/80 border border-slate-700/60 rounded-2xl p-4 md:p-5 card-glow flex flex-col md:flex-row justify-between items-center gap-4">
+            
+            <div class="flex items-center space-x-3">
+                <a href="../index.html" title="Zur Übersicht" aria-label="Zur Übersicht" class="w-12 h-12 rounded-xl bg-slate-950/60 border border-slate-800 text-slate-300 hover:text-teal-300 flex items-center justify-center transition-colors">
+                    <i class="fa-solid fa-house text-lg"></i>
+                </a>
+                <div class="w-12 h-12 rounded-xl bg-gradient-to-tr from-teal-500 to-emerald-400 flex items-center justify-center shadow-lg shadow-teal-500/30">
+                    <i class="fa-solid fa-dna text-2xl text-slate-950"></i>
+                </div>
+                <div>
+                    <h1 class="text-2xl md:text-3xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-teal-300 via-emerald-200 to-cyan-300">
+                        Wer gehört zu wem?
+                    </h1>
+                </div>
+            </div>
+
+            <!-- Stats Bar -->
+            <div class="flex items-center gap-3 sm:gap-6 bg-slate-950/60 px-4 py-2.5 rounded-xl border border-slate-800">
+                <div class="text-center px-2">
+                    <span class="block text-xs uppercase tracking-wider text-slate-400 font-semibold">Paare</span>
+                    <span id="pairs-count" class="text-lg md:text-xl font-bold text-teal-400">0 / 7</span>
+                </div>
+                <div class="h-8 w-px bg-slate-800"></div>
+                <div class="text-center px-2">
+                    <span class="block text-xs uppercase tracking-wider text-slate-400 font-semibold">Versuche</span>
+                    <span id="attempts-count" class="text-lg md:text-xl font-bold text-cyan-400">0</span>
+                </div>
+                <div class="h-8 w-px bg-slate-800"></div>
+                <div class="text-center px-2">
+                    <span class="block text-xs uppercase tracking-wider text-slate-400 font-semibold">Zeit</span>
+                    <span id="timer" class="text-lg md:text-xl font-bold text-emerald-400">00:00</span>
+                </div>
+                <button id="reset-btn" title="Spiel zurücksetzen" class="ml-2 p-2 bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-300 hover:text-white rounded-lg transition-all">
+                    <i class="fa-solid fa-rotate-right"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Progress Bar -->
+        <div class="w-full bg-slate-950/60 rounded-full h-2.5 mt-3 border border-slate-800 overflow-hidden p-0.5">
+            <div id="progress-bar" class="bg-gradient-to-r from-teal-500 to-emerald-400 h-full rounded-full transition-all duration-500 ease-out" style="width: 0%"></div>
+        </div>
+    </header>
+
+    <!-- Game Board -->
+    <main class="max-w-7xl mx-auto w-full flex-grow my-2">
+        <div id="cards-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-3 md:gap-4">
+            <!-- Cards will be dynamically injected here -->
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="max-w-7xl mx-auto w-full mt-4 text-center text-xs text-slate-400">
+        <p class="bg-slate-900/40 py-2 px-4 rounded-xl border border-slate-800 inline-block backdrop-blur-sm">
+            Finde alle 7 Koevolutions-Paare durch Auswählen der zusammengehörenden Individuen.
+        </p>
+    </footer>
+
+    <!-- Coevolution Knowledge Modal (Appears on match) -->
+    <div id="info-modal" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4 hidden opacity-0 transition-opacity duration-300">
+        <div class="bg-slate-900 border border-teal-500/40 rounded-3xl max-w-lg w-full p-6 md:p-8 shadow-2xl transform scale-95 transition-transform duration-300 relative overflow-hidden" id="modal-content">
+            <div class="absolute -top-24 -right-24 w-48 h-48 bg-teal-500/20 rounded-full blur-3xl pointer-events-none"></div>
+            <div class="absolute -bottom-24 -left-24 w-48 h-48 bg-emerald-500/20 rounded-full blur-3xl pointer-events-none"></div>
+
+            <div class="flex items-center gap-3 mb-4">
+                <span id="modal-badge" class="px-3 py-1 bg-teal-500/20 border border-teal-400/30 text-teal-300 font-semibold text-xs rounded-full uppercase tracking-wider">
+                    Koevolution erkannt
+                </span>
+            </div>
+
+            <!-- Matched Visual Header -->
+            <div class="flex items-center justify-center gap-4 py-4 bg-slate-950/60 rounded-2xl border border-slate-800 mb-5">
+                <div class="flex flex-col items-center">
+                    <div id="modal-img-1" class="w-16 h-16 rounded-xl bg-slate-800 p-1 flex items-center justify-center border border-slate-700"></div>
+                    <span id="modal-name-1" class="text-xs font-semibold text-slate-300 mt-2">--</span>
+                </div>
+                <div class="text-teal-400 text-2xl animate-pulse">
+                    <i class="fa-solid fa-arrows-rotate"></i>
+                </div>
+                <div class="flex flex-col items-center">
+                    <div id="modal-img-2" class="w-16 h-16 rounded-xl bg-slate-800 p-1 flex items-center justify-center border border-slate-700"></div>
+                    <span id="modal-name-2" class="text-xs font-semibold text-slate-300 mt-2">--</span>
+                </div>
+            </div>
+
+            <h3 id="modal-title" class="text-xl md:text-2xl font-bold text-white mb-2"></h3>
+            <p id="modal-description" class="text-slate-300 text-sm leading-relaxed mb-6"></p>
+
+            <button id="modal-close-btn" class="w-full py-3.5 bg-gradient-to-r from-teal-500 to-emerald-500 hover:from-teal-400 hover:to-emerald-400 text-slate-950 font-bold rounded-xl shadow-lg shadow-teal-500/25 transition-all active:scale-98 flex items-center justify-center gap-2">
+                <span>Weiter spielen</span>
+                <i class="fa-solid fa-arrow-right"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- Victory Modal -->
+    <div id="victory-modal" class="fixed inset-0 z-50 bg-slate-950/90 backdrop-blur-lg flex items-center justify-center p-4 hidden opacity-0 transition-opacity duration-500">
+        <div class="bg-slate-900 border border-emerald-500/50 rounded-3xl max-w-2xl w-full p-6 md:p-8 shadow-2xl text-center relative overflow-hidden max-h-[90vh] flex flex-col">
+            
+            <div class="mb-4 inline-flex items-center justify-center w-20 h-20 rounded-full bg-emerald-500/20 text-emerald-400 text-4xl mx-auto border border-emerald-500/40 shadow-xl shadow-emerald-500/20 animate-bounce">
+                <i class="fa-solid fa-trophy"></i>
+            </div>
+
+            <h2 class="text-2xl md:text-3xl font-extrabold text-white mb-1">Hervorragend gelöst!</h2>
+            <p class="text-slate-400 text-sm mb-4">Du hast alle koevolutiven Beziehungen erfolgreich entschlüsselt.</p>
+
+            <div class="grid grid-cols-2 gap-3 mb-6 bg-slate-950/60 p-4 rounded-2xl border border-slate-800">
+                <div>
+                    <span class="text-xs text-slate-400 block font-medium">Benötigte Zeit</span>
+                    <span id="final-time" class="text-lg md:text-xl font-bold text-emerald-400">00:00</span>
+                </div>
+                <div>
+                    <span class="text-xs text-slate-400 block font-medium">Versuche</span>
+                    <span id="final-attempts" class="text-lg md:text-xl font-bold text-cyan-400">0</span>
+                </div>
+            </div>
+
+            <div class="flex-grow overflow-y-auto pr-2 text-left space-y-3 mb-6 bg-slate-950/40 p-3 rounded-2xl border border-slate-800/80">
+                <h4 class="text-xs uppercase tracking-wider text-slate-400 font-bold px-1 mb-2">Gelernte Koevolutions-Mechanismen:</h4>
+                <div id="summary-list" class="space-y-2 text-xs"></div>
+            </div>
+
+            <button id="restart-game-btn" class="w-full py-4 bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 text-slate-950 font-extrabold text-base rounded-xl shadow-xl shadow-emerald-500/30 hover:opacity-95 transition-all active:scale-98">
+                Erneut spielen <i class="fa-solid fa-rotate-right ml-2"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- JavaScript Game Logic -->
+    <script>
+        // Icon-Rahmen: runder Lebensraum-Hintergrund + Motiv (Farbverläufe liegen im gemeinsamen <defs> oben)
+        const icon = (bg, body) => `<svg viewBox="0 0 100 100" class="w-full h-full" aria-hidden="true">
+            <circle cx="50" cy="50" r="47" fill="url(#${bg})"/>
+            <g clip-path="url(#clip-round)">${body}</g>
+            <circle cx="50" cy="50" r="47" fill="none" stroke="#ffffff" stroke-opacity="0.35" stroke-width="2"/>
+        </svg>`;
+
+        // Data Structure for 14 Entities / 7 Pairs
+        const coevolutionPairs = [
+            {
+                id: 'mimikry',
+                type: 'Bates’sche Mimikry',
+                title: 'Mimikry (Täuschung & Schutz)',
+                description: 'Die harmlose Schwebfliege imitiert das auffällige Warnmuster der wehrhaften Wespe. Durch diese evolutionäre Anpassung schützt sich die Schwebfliege vor Fressfeinden, die Wespen meiden.',
+                item1: {
+                    name: 'Schwebfliege',
+                    // Fliege: nur 1 Flügelpaar, riesige Augen, kurze Fühler, keine Wespentaille
+                    icon: icon('bg-sky', `
+                        <g fill="url(#g-wing)" stroke="#38bdf8" stroke-width="1">
+                            <path d="M45 41 C32 28 12 30 9 41 C7 50 26 54 45 47 Z"/>
+                            <path d="M55 41 C68 28 88 30 91 41 C93 50 74 54 55 47 Z"/>
+                        </g>
+                        <path d="M43 43 C34 39 22 39 14 42 M43 45 C34 46 24 48 17 47 M57 43 C66 39 78 39 86 42 M57 45 C66 46 76 48 83 47" stroke="#7dd3fc" stroke-width="0.8" fill="none"/>
+                        <path d="M43 46 L34 54 L31 60 M57 46 L66 54 L69 60 M44 50 L38 60 L37 67 M56 50 L62 60 L63 67" stroke="#a16207" stroke-width="1.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+                        <ellipse cx="50" cy="66" rx="13" ry="21" fill="url(#g-yellow)"/>
+                        <g clip-path="url(#clip-hover)" fill="#1c1917">
+                            <rect x="30" y="50" width="40" height="5"/>
+                            <path d="M30 60 L70 60 L70 64 Q50 69 30 64 Z"/>
+                            <path d="M30 71 L70 71 L70 75 Q50 80 30 75 Z"/>
+                            <rect x="30" y="82" width="40" height="10"/>
+                        </g>
+                        <ellipse cx="45" cy="62" rx="2.5" ry="9" fill="#ffffff" opacity="0.25"/>
+                        <ellipse cx="50" cy="41" rx="10" ry="9" fill="#713f12"/>
+                        <path d="M42.5 37 Q44 42 42.5 46 M57.5 37 Q56 42 57.5 46" stroke="#fde047" stroke-width="2.2" fill="none" stroke-linecap="round"/>
+                        <ellipse cx="50" cy="27" rx="12.5" ry="8.5" fill="#422006"/>
+                        <ellipse cx="44" cy="26" rx="7" ry="7.5" fill="url(#g-eye-red)"/>
+                        <ellipse cx="56" cy="26" rx="7" ry="7.5" fill="url(#g-eye-red)"/>
+                        <circle cx="42" cy="23" r="1.8" fill="#ffffff" opacity="0.75"/>
+                        <circle cx="54" cy="23" r="1.8" fill="#ffffff" opacity="0.75"/>
+                        <path d="M48 19 L46.5 14 M52 19 L53.5 14" stroke="#1c1917" stroke-width="1.8" stroke-linecap="round"/>
+                    `)
+                },
+                item2: {
+                    name: 'Wespe',
+                    // Wespe: 2 Flügelpaare, Wespentaille, lange geknickte Fühler, Stachel
+                    icon: icon('bg-sky', `
+                        <g fill="url(#g-wing)" stroke="#64748b" stroke-width="1">
+                            <path d="M44 42 C32 40 20 46 20 52 C22 56 34 52 44 46 Z"/>
+                            <path d="M56 42 C68 40 80 46 80 52 C78 56 66 52 56 46 Z"/>
+                            <path d="M44 38 C30 24 14 24 10 30 C8 36 24 42 44 42 Z"/>
+                            <path d="M56 38 C70 24 86 24 90 30 C92 36 76 42 56 42 Z"/>
+                        </g>
+                        <path d="M42 41 L31 50 L27 58 M58 41 L69 50 L73 58 M43 45 L34 58 L32 67 M57 45 L66 58 L68 67" stroke="#eab308" stroke-width="1.7" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+                        <path d="M50 52 C62 53 64 69 57 82 L50 94 L43 82 C36 69 38 53 50 52 Z" fill="url(#g-yellow)"/>
+                        <g clip-path="url(#clip-wasp)" fill="#1c1917">
+                            <rect x="30" y="52" width="40" height="4"/>
+                            <path d="M30 62 L70 62 L70 66 L52 66 L50 70 L48 66 L30 66 Z"/>
+                            <path d="M30 73 L70 73 L70 78 L52 78 L50 82 L48 78 L30 78 Z"/>
+                            <rect x="30" y="86" width="40" height="10"/>
+                        </g>
+                        <path d="M50 93 L50 98" stroke="#1c1917" stroke-width="1.6" stroke-linecap="round"/>
+                        <ellipse cx="50" cy="49.5" rx="2.2" ry="3" fill="#1c1917"/>
+                        <ellipse cx="50" cy="40" rx="9" ry="9" fill="#1c1917"/>
+                        <path d="M43 36 Q50 32 57 36 M45 45 L47 43 M55 45 L53 43" stroke="#facc15" stroke-width="2" fill="none" stroke-linecap="round"/>
+                        <ellipse cx="50" cy="27" rx="10" ry="7.5" fill="#facc15"/>
+                        <path d="M45 21 L50 29 L55 21 Z" fill="#1c1917"/>
+                        <path d="M40.5 23 C39 27 41 32 45 32 C45 28 43 25 40.5 23 Z M59.5 23 C61 27 59 32 55 32 C55 28 57 25 59.5 23 Z" fill="#1c1917"/>
+                        <path d="M47 21 L42 13 L35 11 M53 21 L58 13 L65 11" stroke="#1c1917" stroke-width="1.9" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+                    `)
+                }
+            },
+            {
+                id: 'pollination',
+                type: 'Mutualistische Bestäubung',
+                title: 'Passgenaue Bestäubungssymbiose',
+                description: 'Der Schnabel des Kolibris hat sich im Laufe der Koevolution perfekt an die tief geschwungene Blütenform der Helikonie angepasst. Der Kolibri erhält Nektar, während die Pflanze zielgerichtet bestäubt wird.',
+                item1: {
+                    name: 'Kolibri',
+                    icon: icon('bg-sky', `
+                        <path d="M48 42 C40 26 26 12 12 8 C20 20 30 34 42 46 Z" fill="#a7f3d0" opacity="0.55"/>
+                        <path d="M52 40 C52 24 46 10 36 2 C38 16 40 30 44 44 Z" fill="#34d399" opacity="0.85"/>
+                        <path d="M50 40 C49 30 45 20 40 13" stroke="#065f46" stroke-width="0.8" fill="none" opacity="0.6"/>
+                        <path d="M36 60 L16 76 L26 76 L18 86 L30 80 L28 90 L42 68 Z" fill="#064e3b"/>
+                        <path d="M62 37 C50 34 37 46 32 64 C44 67 56 61 62 52 C66 46 66 40 62 37 Z" fill="url(#g-humm)"/>
+                        <path d="M58 46 C54 55 46 61 37 63 C46 63 55 58 60 50 Z" fill="#ecfdf5" opacity="0.75"/>
+                        <path d="M46 46 C50 42 56 42 58 46" stroke="#a7f3d0" stroke-width="1.2" fill="none" opacity="0.7"/>
+                        <circle cx="65" cy="35" r="8.5" fill="url(#g-humm)"/>
+                        <path d="M57 39 Q62 50 72 40 Q64 44 57 39 Z" fill="url(#g-gorget)"/>
+                        <circle cx="68" cy="33" r="2.4" fill="#0f172a"/>
+                        <circle cx="68.8" cy="32.2" r="0.8" fill="#ffffff"/>
+                        <path d="M72.5 35 Q85 36 97 44" stroke="#1c1917" stroke-width="2.2" fill="none" stroke-linecap="round"/>
+                    `)
+                },
+                item2: {
+                    name: 'Helikonie',
+                    icon: icon('bg-flower', `
+                        <path d="M30 98 C10 74 12 44 22 30 C30 52 34 74 30 98 Z" fill="url(#g-leaf)"/>
+                        <path d="M30 96 C26 74 24 52 22 32" stroke="#86efac" stroke-width="1" fill="none" opacity="0.7"/>
+                        <path d="M52 98 L52 14" stroke="#15803d" stroke-width="4" stroke-linecap="round"/>
+                        <path d="M52 76 C64 78 80 70 87 55 C76 59 64 61 52 65 Z" fill="url(#g-bract)"/>
+                        <path d="M52 62 C40 64 24 56 17 41 C28 45 40 47 52 51 Z" fill="url(#g-bract)"/>
+                        <path d="M52 48 C62 49 74 42 79 29 C70 33 62 35 52 38 Z" fill="url(#g-bract)"/>
+                        <path d="M52 35 C44 36 34 30 30 20 C37 23 45 24 52 26 Z" fill="url(#g-bract)"/>
+                        <path d="M87 55 C76 59 64 61 56 63 M17 41 C28 45 40 47 48 50 M79 29 C70 33 62 35 56 37 M30 20 C37 23 45 24 50 25" stroke="#fde047" stroke-width="2.4" fill="none" stroke-linecap="round"/>
+                        <path d="M52 76 C64 78 80 70 87 55 M52 62 C40 64 24 56 17 41 M52 48 C62 49 74 42 79 29" stroke="#16a34a" stroke-width="1.6" fill="none" opacity="0.8"/>
+                        <path d="M72 59 Q75 52 80 49 M30 47 Q26 41 22 39 M68 37 Q70 31 74 29" stroke="#fef08a" stroke-width="2" fill="none" stroke-linecap="round"/>
+                        <path d="M52 26 C49 18 51 11 55 6 C57 13 56 20 52 26 Z" fill="#f97316"/>
+                    `)
+                }
+            },
+            {
+                id: 'symbiosis_sea',
+                type: 'Mutualismus / Symbiose',
+                title: 'Schutz- & Reinigungssymbiose',
+                description: 'Der Clownfisch besitzt eine spezielle Schleimhaut, die ihn vor den tödlichen Nesselzellen der Seeanemone schützt. Er findet im Dickicht der Tentakeln Schutz vor Räubern und lockt im Gegenzug Nahrung für die Anemone an.',
+                item1: {
+                    name: 'Clownfisch',
+                    icon: icon('bg-sea', `
+                        <circle cx="84" cy="22" r="3" fill="none" stroke="#ecfeff" stroke-width="1.2" opacity="0.8"/>
+                        <circle cx="90" cy="14" r="2" fill="none" stroke="#ecfeff" stroke-width="1" opacity="0.7"/>
+                        <path d="M24 50 C16 38 9 35 6 39 C10 45 10 55 6 61 C9 65 16 62 24 50 Z" fill="url(#g-clown)" stroke="#1c1917" stroke-width="1.6"/>
+                        <path d="M38 35 C42 23 57 21 67 32 C58 32 47 33 38 35 Z" fill="url(#g-clown)" stroke="#1c1917" stroke-width="1.6"/>
+                        <path d="M44 65 C48 77 59 77 62 66 Z" fill="url(#g-clown)" stroke="#1c1917" stroke-width="1.6"/>
+                        <ellipse cx="52" cy="50" rx="30" ry="17" fill="url(#g-clown)"/>
+                        <g clip-path="url(#clip-clown)" fill="#ffffff" stroke="#1c1917" stroke-width="1.6">
+                            <path d="M66 30 C72 40 72 60 66 70 L72 70 C78 60 78 40 72 30 Z"/>
+                            <path d="M45 30 C52 40 52 60 45 70 L52 70 C59 60 59 40 52 30 Z"/>
+                            <path d="M26 30 C31 40 31 60 26 70 L31 70 C36 60 36 40 31 30 Z"/>
+                        </g>
+                        <ellipse cx="52" cy="50" rx="30" ry="17" fill="none" stroke="#1c1917" stroke-width="1.6"/>
+                        <ellipse cx="50" cy="42" rx="18" ry="4" fill="#ffffff" opacity="0.18"/>
+                        <path d="M58 53 C62 60 69 62 67 53 Z" fill="#fb923c" stroke="#1c1917" stroke-width="1.3"/>
+                        <circle cx="76" cy="45" r="4" fill="#ffffff" stroke="#1c1917" stroke-width="1"/>
+                        <circle cx="77" cy="45" r="2.3" fill="#0f172a"/>
+                        <circle cx="77.8" cy="44.2" r="0.7" fill="#ffffff"/>
+                        <path d="M82 54 Q79 56 77 53" stroke="#1c1917" stroke-width="1.6" fill="none" stroke-linecap="round"/>
+                    `)
+                },
+                item2: {
+                    name: 'Seeanemone',
+                    icon: icon('bg-sea', `
+                        <path d="M0 90 Q30 84 50 88 Q72 84 100 90 L100 100 L0 100 Z" fill="#475569"/>
+                        <g stroke="url(#g-tent)" stroke-width="6" fill="none" stroke-linecap="round" opacity="0.75">
+                            <path d="M42 72 Q28 62 22 50 Q18 42 10 40"/>
+                            <path d="M58 72 Q72 62 78 50 Q82 42 90 40"/>
+                            <path d="M46 70 Q38 52 40 38 Q41 28 34 20"/>
+                            <path d="M54 70 Q62 52 60 38 Q59 28 66 20"/>
+                        </g>
+                        <g stroke="url(#g-tent)" stroke-width="6.5" fill="none" stroke-linecap="round">
+                            <path d="M40 74 Q24 70 18 62 Q12 56 6 58"/>
+                            <path d="M60 74 Q76 70 82 62 Q88 56 94 58"/>
+                            <path d="M44 72 Q34 58 28 46 Q24 36 20 28"/>
+                            <path d="M56 72 Q66 58 72 46 Q76 36 80 28"/>
+                            <path d="M50 70 Q46 52 50 36 Q54 24 49 14"/>
+                        </g>
+                        <g fill="#f5d0fe">
+                            <circle cx="10" cy="40" r="3.4"/><circle cx="90" cy="40" r="3.4"/>
+                            <circle cx="34" cy="20" r="3.4"/><circle cx="66" cy="20" r="3.4"/>
+                            <circle cx="6" cy="58" r="3.6"/><circle cx="94" cy="58" r="3.6"/>
+                            <circle cx="20" cy="28" r="3.6"/><circle cx="80" cy="28" r="3.6"/>
+                            <circle cx="49" cy="14" r="3.6"/>
+                        </g>
+                        <path d="M33 74 C33 68 67 68 67 74 L63 90 C57 93 43 93 37 90 Z" fill="url(#g-column)"/>
+                        <ellipse cx="50" cy="72" rx="17" ry="4.5" fill="#9d174d"/>
+                        <ellipse cx="50" cy="72" rx="6" ry="1.8" fill="#500724"/>
+                        <path d="M40 78 L40 88 M50 79 L50 91 M60 78 L60 88" stroke="#f9a8d4" stroke-width="1" opacity="0.4"/>
+                    `)
+                }
+            },
+            {
+                id: 'host_virus',
+                type: 'Wirt-Parasit-Wettrüsten',
+                title: 'Antagonistisches Immunsystem-Wettrüsten',
+                description: 'Mensch und Viren stehen in einer dynamischen antagonistischen Koevolution. Das menschliche Immunsystem entwickelt kontinuierlich Abwehrmechanismen (z. B. spezifische Antikörper), während Viren durch hohe Mutationsraten ihre Oberflächenproteine anpassen.',
+                item1: {
+                    name: 'Mensch',
+                    icon: icon('bg-lab', `
+                        <path d="M14 100 C14 80 30 72 50 72 C70 72 86 80 86 100 Z" fill="url(#g-shirt)"/>
+                        <path d="M41 72 L50 82 L59 72 Z" fill="#fdba74"/>
+                        <g stroke="#fef08a" stroke-width="2.4" fill="none" stroke-linecap="round">
+                            <path d="M66 92 L66 85 M66 85 L61 80 M66 85 L71 80"/>
+                        </g>
+                        <rect x="44" y="58" width="12" height="16" rx="4" fill="#fdba74"/>
+                        <ellipse cx="31" cy="42" rx="4" ry="6" fill="#fdba74"/>
+                        <ellipse cx="69" cy="42" rx="4" ry="6" fill="#fdba74"/>
+                        <path d="M32 38 C32 22 68 22 68 38 C68 56 59 65 50 65 C41 65 32 56 32 38 Z" fill="url(#g-skin)"/>
+                        <path d="M30 38 C27 22 37 10 50 10 C64 10 73 21 70 38 C68 30 64 25 57 24 C50 28 40 28 33 26 C31 30 30 34 30 38 Z" fill="url(#g-hair)"/>
+                        <path d="M40 37 Q43 35 46 37 M54 37 Q57 35 60 37" stroke="#57534e" stroke-width="1.6" fill="none" stroke-linecap="round"/>
+                        <ellipse cx="43" cy="42" rx="2.4" ry="3.2" fill="#1e293b"/>
+                        <ellipse cx="57" cy="42" rx="2.4" ry="3.2" fill="#1e293b"/>
+                        <circle cx="43.8" cy="41" r="0.9" fill="#ffffff"/>
+                        <circle cx="57.8" cy="41" r="0.9" fill="#ffffff"/>
+                        <path d="M50 44 Q48 50 51 51" stroke="#ea9a5b" stroke-width="1.4" fill="none" stroke-linecap="round"/>
+                        <circle cx="38" cy="50" r="3.5" fill="#fb7185" opacity="0.3"/>
+                        <circle cx="62" cy="50" r="3.5" fill="#fb7185" opacity="0.3"/>
+                        <path d="M44 55 Q50 60 56 55" stroke="#9a3412" stroke-width="1.8" fill="none" stroke-linecap="round"/>
+                    `)
+                },
+                item2: {
+                    name: 'Viren',
+                    icon: icon('bg-lab', `
+                        <g stroke="#4d7c0f" stroke-width="2.6" stroke-linecap="round" fill="#f43f5e">
+                            ${[0, 30, 60, 90, 120, 150, 180, 210, 240, 270, 300, 330].map(a => `
+                            <g transform="rotate(${a} 50 50)"><line x1="50" y1="25" x2="50" y2="13"/><circle cx="50" cy="11" r="4" stroke="#9f1239" stroke-width="1.2"/></g>`).join('')}
+                        </g>
+                        <circle cx="50" cy="50" r="26" fill="url(#g-virus)" stroke="#365314" stroke-width="1.5"/>
+                        <circle cx="50" cy="50" r="15" fill="#3f6212" opacity="0.55"/>
+                        <path d="M40 48 Q45 40 50 48 T60 50 Q56 58 48 56" stroke="#fde047" stroke-width="2.4" fill="none" stroke-linecap="round"/>
+                        <g fill="#d9f99d" opacity="0.8">
+                            <circle cx="36" cy="38" r="2"/><circle cx="64" cy="36" r="1.6"/><circle cx="66" cy="62" r="2"/><circle cx="34" cy="62" r="1.6"/>
+                        </g>
+                        <ellipse cx="41" cy="36" rx="7" ry="4" fill="#ffffff" opacity="0.3" transform="rotate(-30 41 36)"/>
+                    `)
+                }
+            },
+            {
+                id: 'seed_dispersal',
+                type: 'Endozoochorie (Samenverbreitung)',
+                title: 'Frucht- & Samenverbreitung',
+                description: 'Pflanzen wie der Kirschbaum entwickelten süßes, nährstoffreiches Fruchtfleisch, um Vögel wie den Star anzulocken. Der Vogel frisst die Kirsche und scheidet den unverdaulichen Samen an anderen Orten aus.',
+                item1: {
+                    name: 'Star',
+                    icon: icon('bg-sky', `
+                        <path d="M2 84 Q50 74 98 80" stroke="#78350f" stroke-width="5" fill="none" stroke-linecap="round"/>
+                        <path d="M70 79 Q78 70 86 72" stroke="#78350f" stroke-width="3" fill="none" stroke-linecap="round"/>
+                        <path d="M47 68 L45 80 M55 68 L57 79" stroke="#f472b6" stroke-width="2.4" stroke-linecap="round"/>
+                        <path d="M42 80 L48 80 M54 79 L60 79" stroke="#f472b6" stroke-width="1.8" stroke-linecap="round"/>
+                        <path d="M30 60 L10 74 L16 78 L36 66 Z" fill="#1e1b4b"/>
+                        <path d="M28 55 C28 40 44 31 62 33 C75 35 80 46 76 57 C69 71 40 73 28 55 Z" fill="url(#g-star)"/>
+                        <path d="M34 52 C39 40 56 39 67 48 C59 61 44 64 34 52 Z" fill="#1e1b4b"/>
+                        <path d="M38 54 C44 56 52 56 60 52 M36 50 C44 50 54 48 63 46" stroke="#d6b38a" stroke-width="1" fill="none" opacity="0.7"/>
+                        <g fill="#fef3c7">
+                            <circle cx="44" cy="62" r="1.1"/><circle cx="52" cy="64" r="1.1"/><circle cx="60" cy="61" r="1.1"/>
+                            <circle cx="66" cy="56" r="1.1"/><circle cx="70" cy="50" r="1"/><circle cx="48" cy="38" r="1"/>
+                            <circle cx="56" cy="36" r="1"/><circle cx="40" cy="43" r="1"/><circle cx="68" cy="42" r="1"/>
+                        </g>
+                        <circle cx="70" cy="35" r="10" fill="url(#g-star)"/>
+                        <ellipse cx="66" cy="31" rx="5" ry="2.5" fill="#a78bfa" opacity="0.35" transform="rotate(-20 66 31)"/>
+                        <circle cx="73" cy="33" r="2.3" fill="#0f172a"/>
+                        <circle cx="73.8" cy="32.2" r="0.7" fill="#ffffff"/>
+                        <path d="M78 33 L95 36 L78 39 Z" fill="#facc15" stroke="#ca8a04" stroke-width="0.8" stroke-linejoin="round"/>
+                        <path d="M90 37 Q93 44 90 49" stroke="#65a30d" stroke-width="1.6" fill="none" stroke-linecap="round"/>
+                        <circle cx="90" cy="54" r="5.5" fill="url(#g-cherry)"/>
+                        <ellipse cx="88" cy="51.5" rx="1.6" ry="1" fill="#ffffff" opacity="0.7"/>
+                    `)
+                },
+                item2: {
+                    name: 'Kirschen',
+                    icon: icon('bg-flower', `
+                        <path d="M52 18 C60 4 82 6 88 20 C76 30 58 28 52 18 Z" fill="url(#g-leaf)"/>
+                        <path d="M54 18 Q70 15 86 20" stroke="#86efac" stroke-width="1" fill="none"/>
+                        <path d="M64 17 L68 12 M74 18 L78 13" stroke="#86efac" stroke-width="0.8" fill="none"/>
+                        <path d="M52 18 Q36 34 31 52 M52 18 Q62 34 69 50" stroke="#65a30d" stroke-width="3" fill="none" stroke-linecap="round"/>
+                        <path d="M48 16 Q52 13 56 17" stroke="#4d7c0f" stroke-width="4" fill="none" stroke-linecap="round"/>
+                        <circle cx="30" cy="67" r="18" fill="url(#g-cherry)"/>
+                        <path d="M28 50 Q31 53 32 50" stroke="#7f1d1d" stroke-width="1.4" fill="none"/>
+                        <ellipse cx="23" cy="58" rx="5" ry="2.8" fill="#ffffff" opacity="0.7" transform="rotate(-35 23 58)"/>
+                        <circle cx="70" cy="66" r="16.5" fill="url(#g-cherry)"/>
+                        <path d="M67 50 Q70 53 72 50" stroke="#7f1d1d" stroke-width="1.4" fill="none"/>
+                        <ellipse cx="64" cy="58" rx="4.5" ry="2.5" fill="#ffffff" opacity="0.65" transform="rotate(-35 64 58)"/>
+                    `)
+                }
+            },
+            {
+                id: 'predator_prey',
+                type: 'Räuber-Beute-Wettrüsten',
+                title: 'Evolutives Wettrüsten',
+                description: 'Fuchs und Kaninchen treiben sich gegenseitig in ihrer Evolution voran: Schnellere Kaninchen überleben eher, was wiederum den Selektionsdruck auf den Fuchs erhöht, noch flinker und schlauer zu werden.',
+                item1: {
+                    name: 'Wildkaninchen',
+                    icon: icon('bg-meadow', `
+                        <path d="M0 84 Q50 78 100 84 L100 100 L0 100 Z" fill="#65a30d"/>
+                        <path d="M10 84 L12 77 L15 84 M84 82 L87 74 L89 82 M26 83 L28 78 L30 83" stroke="#4d7c0f" stroke-width="1.5" fill="none"/>
+                        <ellipse cx="44" cy="64" rx="24" ry="18" fill="url(#g-rabbit)"/>
+                        <ellipse cx="34" cy="68" rx="14" ry="13" fill="#7c4f2a" opacity="0.45"/>
+                        <circle cx="20" cy="60" r="6.5" fill="#ffffff" stroke="#e7e5e4" stroke-width="1"/>
+                        <ellipse cx="36" cy="82" rx="12" ry="3.5" fill="#8a6440"/>
+                        <ellipse cx="62" cy="81" rx="5" ry="3" fill="#d6b38a"/>
+                        <path d="M58 68 C62 74 62 78 62 80" stroke="#6b4423" stroke-width="1.4" fill="none" opacity="0.6"/>
+                        <ellipse cx="58" cy="26" rx="4.5" ry="14" fill="url(#g-rabbit)" transform="rotate(-18 58 26)"/>
+                        <ellipse cx="58" cy="27" rx="2" ry="10" fill="#f9a8d4" opacity="0.8" transform="rotate(-18 58 27)"/>
+                        <ellipse cx="67" cy="25" rx="4.5" ry="14" fill="url(#g-rabbit)" transform="rotate(8 67 25)"/>
+                        <ellipse cx="67" cy="26" rx="2" ry="10" fill="#f9a8d4" opacity="0.8" transform="rotate(8 67 26)"/>
+                        <ellipse cx="67" cy="47" rx="13" ry="11" fill="url(#g-rabbit)"/>
+                        <ellipse cx="74" cy="52" rx="5.5" ry="4.5" fill="#f5e6d3"/>
+                        <circle cx="70" cy="44" r="3" fill="#1c1917"/>
+                        <circle cx="71" cy="43" r="1" fill="#ffffff"/>
+                        <ellipse cx="79" cy="49" rx="1.8" ry="1.4" fill="#f472b6"/>
+                        <path d="M76 52 L88 50 M76 53 L88 55 M75 54 L86 59" stroke="#57534e" stroke-width="0.7" opacity="0.7"/>
+                    `)
+                },
+                item2: {
+                    name: 'Rotfuchs',
+                    icon: icon('bg-dusk', `
+                        <path d="M0 86 Q50 80 100 86 L100 100 L0 100 Z" fill="#a16207" opacity="0.5"/>
+                        <path d="M34 55 C22 48 6 52 3 66 C2 75 8 81 15 79 C21 70 29 64 37 62 Z" fill="url(#g-fox)"/>
+                        <path d="M3 66 C2 75 8 81 15 79 C10 77 6 72 3 66 Z" fill="#fff7ed"/>
+                        <g fill="none" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M47 62 L48 72" stroke="#c2410c" stroke-width="6"/>
+                            <path d="M71 60 L73 72" stroke="#c2410c" stroke-width="6"/>
+                            <path d="M48 72 L46 84" stroke="#1c1917" stroke-width="4.2"/>
+                            <path d="M73 72 L74 84" stroke="#1c1917" stroke-width="4.2"/>
+                        </g>
+                        <ellipse cx="53" cy="57" rx="22" ry="12" fill="url(#g-fox)"/>
+                        <path d="M36 52 C44 47 58 46 70 49" stroke="#fdba74" stroke-width="1.5" fill="none" opacity="0.6"/>
+                        <g fill="none" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M38 60 C34 66 36 70 38 73" stroke="#ea580c" stroke-width="7"/>
+                            <path d="M64 62 L65 73" stroke="#ea580c" stroke-width="6"/>
+                            <path d="M38 73 L36 84" stroke="#1c1917" stroke-width="4.4"/>
+                            <path d="M65 73 L64 84" stroke="#1c1917" stroke-width="4.4"/>
+                            <path d="M33 84 L37 84 M61 84 L65 84" stroke="#1c1917" stroke-width="3"/>
+                        </g>
+                        <path d="M64 50 C73 54 76 62 71 69 C66 64 63 57 64 50 Z" fill="#fff7ed"/>
+                        <path d="M62 46 C63 36 72 30 82 34 L97 46 C91 51 83 53 75 53 C68 53 62 51 62 46 Z" fill="url(#g-fox)"/>
+                        <path d="M78 49 L97 46 C91 53 82 55 75 53 Z" fill="#fff7ed"/>
+                        <path d="M66 39 L66 20 L77 33 Z" fill="#ea580c"/>
+                        <path d="M68 35 L68 26 L73 32 Z" fill="#292524"/>
+                        <path d="M74 34 L80 18 L85 35 Z" fill="#f97316"/>
+                        <path d="M76.5 33 L80 24 L83 33 Z" fill="#292524"/>
+                        <path d="M79 41 Q82.5 38.5 86 41 Q82.5 42.5 79 41 Z" fill="#1c1917"/>
+                        <circle cx="96.5" cy="46" r="2.3" fill="#1c1917"/>
+                    `)
+                }
+            },
+            {
+                id: 'grazing',
+                type: 'Herbivorie-Koevolution',
+                title: 'Gräser & Grasfresser',
+                description: 'Gräser lagerten abrasive Kieselsäure (Phytolithe) ein, um sich vor Fraß zu schützen. Pferde entwickelten als Reaktion hochkronige, widerstandsfähige Zähne und spezialisierte Hufe für die Steppenlandschaft.',
+                item1: {
+                    name: 'Pferde',
+                    icon: icon('bg-meadow', `
+                        <path d="M24 100 C26 76 32 54 46 38 C53 29 60 23 66 21 C73 19 79 23 83 31 L93 52 C95 58 91 63 85 61 L75 57 C69 61 64 68 62 78 L60 100 Z" fill="url(#g-horse)"/>
+                        <path d="M66 46 C70 54 76 57 84 57" stroke="#451a03" stroke-width="1.5" fill="none" opacity="0.5"/>
+                        <path d="M74 24 C78 32 84 42 89 51 C86 47 80 38 76 31 Z" fill="#fafaf9" opacity="0.9"/>
+                        <path d="M63 21 C52 23 42 36 35 52 C29 66 25 80 22 96 C30 84 34 70 42 56 C48 44 56 33 67 26 Z" fill="#3b1a07"/>
+                        <path d="M66 22 C71 24 73 29 70 34 C66 31 64 27 66 22 Z" fill="#3b1a07"/>
+                        <path d="M62 23 L59 8 L68 19 Z" fill="url(#g-horse)"/>
+                        <path d="M69 21 L71 7 L75 20 Z" fill="#92400e"/>
+                        <ellipse cx="73" cy="34" rx="2.6" ry="2.1" fill="#1c1917"/>
+                        <circle cx="73.8" cy="33.2" r="0.8" fill="#ffffff"/>
+                        <ellipse cx="89" cy="55" rx="1.6" ry="2.6" fill="#1c1917" transform="rotate(-30 89 55)"/>
+                        <path d="M87 61 Q83 61 80 59" stroke="#1c1917" stroke-width="1.3" fill="none" stroke-linecap="round"/>
+                    `)
+                },
+                item2: {
+                    name: 'Gras',
+                    icon: icon('bg-meadow', `
+                        <path d="M0 82 Q50 76 100 82 L100 100 L0 100 Z" fill="#78350f"/>
+                        <path d="M12 84 Q18 50 6 22 Q26 48 30 84 Z" fill="url(#g-blade)"/>
+                        <path d="M26 84 Q36 46 30 20 Q46 46 44 84 Z" fill="url(#g-blade2)"/>
+                        <path d="M58 84 Q66 48 80 24 Q74 54 72 84 Z" fill="url(#g-blade2)"/>
+                        <path d="M70 84 Q86 52 94 40 Q86 62 84 84 Z" fill="url(#g-blade)"/>
+                        <path d="M50 84 Q53 52 49 16" stroke="#4d7c0f" stroke-width="2" fill="none"/>
+                        <g fill="#d9f99d" stroke="#65a30d" stroke-width="0.8">
+                            <ellipse cx="49" cy="17" rx="2.4" ry="4"/>
+                            <ellipse cx="46" cy="24" rx="2.4" ry="4" transform="rotate(-30 46 24)"/>
+                            <ellipse cx="53" cy="27" rx="2.4" ry="4" transform="rotate(30 53 27)"/>
+                            <ellipse cx="47" cy="33" rx="2.4" ry="4" transform="rotate(-30 47 33)"/>
+                            <ellipse cx="54" cy="36" rx="2.4" ry="4" transform="rotate(30 54 36)"/>
+                            <ellipse cx="48" cy="42" rx="2.4" ry="4" transform="rotate(-30 48 42)"/>
+                            <ellipse cx="54" cy="45" rx="2.4" ry="4" transform="rotate(30 54 45)"/>
+                        </g>
+                        <path d="M38 84 Q44 62 40 50" stroke="url(#g-blade)" stroke-width="3" fill="none" stroke-linecap="round"/>
+                        <g fill="#ffffff">
+                            <path d="M18 46 l1.2 3 l3 1.2 l-3 1.2 l-1.2 3 l-1.2 -3 l-3 -1.2 l3 -1.2 Z"/>
+                            <path d="M34 34 l1 2.5 l2.5 1 l-2.5 1 l-1 2.5 l-1 -2.5 l-2.5 -1 l2.5 -1 Z"/>
+                            <path d="M74 44 l1.2 3 l3 1.2 l-3 1.2 l-1.2 3 l-1.2 -3 l-3 -1.2 l3 -1.2 Z"/>
+                            <path d="M86 58 l1 2.5 l2.5 1 l-2.5 1 l-1 2.5 l-1 -2.5 l-2.5 -1 l2.5 -1 Z"/>
+                        </g>
+                    `)
+                }
+            }
+        ];
+
+        // State Variables
+        let cards = [];
+        let selectedCards = [];
+        let matchedPairIds = [];
+        let attempts = 0;
+        let timerSeconds = 0;
+        let timerInterval = null;
+        let isTimerRunning = false;
+
+        // Web Audio API Sound Generator
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        let audioCtx;
+
+        function initAudio() {
+            if (!audioCtx) {
+                audioCtx = new AudioCtx();
+            }
+        }
+
+        function playSound(type) {
+            initAudio();
+            if (!audioCtx) return;
+
+            const now = audioCtx.currentTime;
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+
+            if (type === 'select') {
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(440, now);
+                osc.frequency.exponentialRampToValueAtTime(880, now + 0.1);
+                gain.gain.setValueAtTime(0.15, now);
+                gain.gain.linearRampToValueAtTime(0.01, now + 0.1);
+                osc.start(now);
+                osc.stop(now + 0.1);
+            } else if (type === 'match') {
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(523.25, now);
+                osc.frequency.setValueAtTime(659.25, now + 0.1);
+                osc.frequency.setValueAtTime(783.99, now + 0.2);
+                gain.gain.setValueAtTime(0.2, now);
+                gain.gain.linearRampToValueAtTime(0.01, now + 0.35);
+                osc.start(now);
+                osc.stop(now + 0.35);
+            } else if (type === 'error') {
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(220, now);
+                osc.frequency.setValueAtTime(160, now + 0.12);
+                gain.gain.setValueAtTime(0.2, now);
+                gain.gain.linearRampToValueAtTime(0.01, now + 0.25);
+                osc.start(now);
+                osc.stop(now + 0.25);
+            } else if (type === 'victory') {
+                const notes = [523.25, 659.25, 783.99, 1046.50];
+                notes.forEach((freq, idx) => {
+                    const o = audioCtx.createOscillator();
+                    const g = audioCtx.createGain();
+                    o.connect(g);
+                    g.connect(audioCtx.destination);
+                    o.type = 'triangle';
+                    o.frequency.setValueAtTime(freq, now + idx * 0.12);
+                    g.gain.setValueAtTime(0.2, now + idx * 0.12);
+                    g.gain.linearRampToValueAtTime(0.01, now + idx * 0.12 + 0.3);
+                    o.start(now + idx * 0.12);
+                    o.stop(now + idx * 0.12 + 0.3);
+                });
+            }
+        }
+
+        // DOM Elements
+        const grid = document.getElementById('cards-grid');
+        const pairsCountEl = document.getElementById('pairs-count');
+        const attemptsCountEl = document.getElementById('attempts-count');
+        const timerEl = document.getElementById('timer');
+        const progressBar = document.getElementById('progress-bar');
+        const resetBtn = document.getElementById('reset-btn');
+
+        // Modals
+        const infoModal = document.getElementById('info-modal');
+        const modalContent = document.getElementById('modal-content');
+        const modalBadge = document.getElementById('modal-badge');
+        const modalTitle = document.getElementById('modal-title');
+        const modalDesc = document.getElementById('modal-description');
+        const modalImg1 = document.getElementById('modal-img-1');
+        const modalImg2 = document.getElementById('modal-img-2');
+        const modalName1 = document.getElementById('modal-name-1');
+        const modalName2 = document.getElementById('modal-name-2');
+        const modalCloseBtn = document.getElementById('modal-close-btn');
+
+        const victoryModal = document.getElementById('victory-modal');
+        const finalTimeEl = document.getElementById('final-time');
+        const finalAttemptsEl = document.getElementById('final-attempts');
+        const summaryListEl = document.getElementById('summary-list');
+        const restartGameBtn = document.getElementById('restart-game-btn');
+
+        // Shuffle utility
+        function shuffle(array) {
+            let currentIndex = array.length, randomIndex;
+            while (currentIndex !== 0) {
+                randomIndex = Math.floor(Math.random() * currentIndex);
+                currentIndex--;
+                [array[currentIndex], array[randomIndex]] = [array[randomIndex], array[currentIndex]];
+            }
+            return array;
+        }
+
+        // Timer functions
+        function startTimer() {
+            if (!isTimerRunning) {
+                isTimerRunning = true;
+                timerInterval = setInterval(() => {
+                    timerSeconds++;
+                    const mins = String(Math.floor(timerSeconds / 60)).padStart(2, '0');
+                    const secs = String(timerSeconds % 60).padStart(2, '0');
+                    timerEl.textContent = `${mins}:${secs}`;
+                }, 1000);
+            }
+        }
+
+        function stopTimer() {
+            clearInterval(timerInterval);
+            isTimerRunning = false;
+        }
+
+        function resetTimer() {
+            stopTimer();
+            timerSeconds = 0;
+            timerEl.textContent = '00:00';
+        }
+
+        // Flatten 7 pairs into 14 cards
+        function initGame() {
+            stopTimer();
+            resetTimer();
+
+            matchedPairIds = [];
+            selectedCards = [];
+            attempts = 0;
+
+            attemptsCountEl.textContent = '0';
+            pairsCountEl.textContent = `0 / ${coevolutionPairs.length}`;
+            progressBar.style.width = '0%';
+
+            let deck = [];
+            coevolutionPairs.forEach(pair => {
+                deck.push({
+                    cardUniqueId: pair.id + '_1',
+                    pairId: pair.id,
+                    name: pair.item1.name,
+                    icon: pair.item1.icon,
+                    pairData: pair
+                });
+                deck.push({
+                    cardUniqueId: pair.id + '_2',
+                    pairId: pair.id,
+                    name: pair.item2.name,
+                    icon: pair.item2.icon,
+                    pairData: pair
+                });
+            });
+
+            cards = shuffle(deck);
+            renderBoard();
+        }
+
+        // Render Grid
+        function renderBoard() {
+            grid.innerHTML = '';
+            cards.forEach(card => {
+                const cardEl = document.createElement('div');
+                cardEl.dataset.uniqueId = card.cardUniqueId;
+                cardEl.dataset.pairId = card.pairId;
+                
+                cardEl.className = `card-hover card-glow bg-slate-900/90 border-2 border-slate-700/70 hover:border-teal-400/60 rounded-2xl p-3 flex flex-col items-center justify-between cursor-pointer aspect-square sm:aspect-auto sm:h-44 relative overflow-hidden group select-none`;
+
+                cardEl.innerHTML = `
+                    <div class="absolute inset-0 bg-gradient-to-b from-teal-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                    
+                    <!-- Icon Box -->
+                    <div class="w-16 h-16 sm:w-20 sm:h-20 rounded-xl bg-slate-950/60 p-1 flex items-center justify-center border border-slate-800 group-hover:border-teal-500/40 transition-colors shadow-inner mt-1">
+                        ${card.icon}
+                    </div>
+
+                    <!-- Label -->
+                    <div class="text-center w-full z-10 my-2">
+                        <span class="block text-xs sm:text-sm font-bold text-slate-100 group-hover:text-teal-300 transition-colors truncate px-1">
+                            ${card.name}
+                        </span>
+                    </div>
+
+                    <!-- Indicator -->
+                    <div class="absolute top-2 right-2 w-2 h-2 rounded-full bg-slate-700 indicator-dot"></div>
+                `;
+
+                cardEl.addEventListener('click', () => handleCardClick(card, cardEl));
+                grid.appendChild(cardEl);
+            });
+        }
+
+        function handleCardClick(card, cardEl) {
+            startTimer();
+
+            if (matchedPairIds.includes(card.pairId) || selectedCards.some(c => c.cardUniqueId === card.cardUniqueId)) {
+                return;
+            }
+
+            playSound('select');
+            selectedCards.push({ card, el: cardEl });
+            
+            cardEl.classList.add('card-selected', 'border-teal-400');
+            cardEl.querySelector('.indicator-dot').classList.replace('bg-slate-700', 'bg-teal-400');
+
+            if (selectedCards.length === 2) {
+                attempts++;
+                attemptsCountEl.textContent = attempts;
+
+                const [first, second] = selectedCards;
+
+                if (first.card.pairId === second.card.pairId) {
+                    handleMatch(first, second);
+                } else {
+                    handleMismatch(first, second);
+                }
+
+                selectedCards = [];
+            }
+        }
+
+        function handleMatch(first, second) {
+            playSound('match');
+            const pairId = first.card.pairId;
+            matchedPairIds.push(pairId);
+
+            [first.el, second.el].forEach(el => {
+                el.classList.remove('card-selected', 'border-teal-400', 'card-hover');
+                el.classList.add('card-matched', 'border-emerald-500', 'bg-emerald-950/20');
+                const dot = el.querySelector('.indicator-dot');
+                dot.classList.replace('bg-teal-400', 'bg-emerald-400');
+                dot.classList.add('shadow-lg', 'shadow-emerald-400');
+            });
+
+            const progress = (matchedPairIds.length / coevolutionPairs.length) * 100;
+            pairsCountEl.textContent = `${matchedPairIds.length} / ${coevolutionPairs.length}`;
+            progressBar.style.width = `${progress}%`;
+
+            setTimeout(() => {
+                showInfoModal(first.card.pairData);
+            }, 400);
+        }
+
+        function handleMismatch(first, second) {
+            playSound('error');
+            [first.el, second.el].forEach(el => {
+                el.classList.add('card-error', 'border-rose-500');
+            });
+
+            setTimeout(() => {
+                [first.el, second.el].forEach(el => {
+                    el.classList.remove('card-selected', 'card-error', 'border-teal-400', 'border-rose-500');
+                    el.querySelector('.indicator-dot').classList.replace('bg-teal-400', 'bg-slate-700');
+                });
+            }, 600);
+        }
+
+        function showInfoModal(pairData) {
+            modalBadge.textContent = pairData.type;
+            modalTitle.textContent = pairData.title;
+            modalDesc.textContent = pairData.description;
+
+            modalImg1.innerHTML = pairData.item1.icon;
+            modalImg2.innerHTML = pairData.item2.icon;
+
+            modalName1.textContent = pairData.item1.name;
+            modalName2.textContent = pairData.item2.name;
+
+            infoModal.classList.remove('hidden');
+            setTimeout(() => {
+                infoModal.classList.remove('opacity-0');
+                modalContent.classList.remove('scale-95');
+                modalContent.classList.add('scale-100');
+            }, 10);
+        }
+
+        function hideInfoModal() {
+            infoModal.classList.add('opacity-0');
+            modalContent.classList.remove('scale-100');
+            modalContent.classList.add('scale-95');
+
+            setTimeout(() => {
+                infoModal.classList.add('hidden');
+                if (matchedPairIds.length === coevolutionPairs.length) {
+                    showVictoryModal();
+                }
+            }, 300);
+        }
+
+        function showVictoryModal() {
+            clearInterval(timerInterval);
+            playSound('victory');
+
+            finalTimeEl.textContent = timerEl.textContent;
+            finalAttemptsEl.textContent = attempts;
+
+            summaryListEl.innerHTML = '';
+            coevolutionPairs.forEach(pair => {
+                const item = document.createElement('div');
+                item.className = 'p-2.5 rounded-xl bg-slate-900 border border-slate-800 flex items-start gap-3';
+                item.innerHTML = `
+                    <div class="w-8 h-8 rounded-lg bg-teal-500/20 text-teal-300 flex items-center justify-center flex-shrink-0 border border-teal-500/30 font-bold text-xs">
+                        <i class="fa-solid fa-check"></i>
+                    </div>
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <span class="font-bold text-slate-200">${pair.item1.name} & ${pair.item2.name}</span>
+                            <span class="text-[10px] px-2 py-0.5 rounded-full bg-slate-800 text-teal-400 font-semibold border border-slate-700">${pair.type}</span>
+                        </div>
+                        <p class="text-[11px] text-slate-400 mt-0.5 leading-snug">${pair.description}</p>
+                    </div>
+                `;
+                summaryListEl.appendChild(item);
+            });
+
+            victoryModal.classList.remove('hidden');
+            setTimeout(() => {
+                victoryModal.classList.remove('opacity-0');
+            }, 10);
+        }
+
+        modalCloseBtn.addEventListener('click', hideInfoModal);
+        resetBtn.addEventListener('click', initGame);
+        restartGameBtn.addEventListener('click', () => {
+            victoryModal.classList.add('opacity-0');
+            setTimeout(() => {
+                victoryModal.classList.add('hidden');
+                initGame();
+            }, 300);
+        });
+
+        window.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && !infoModal.classList.contains('hidden')) {
+                hideInfoModal();
+            }
+        });
+
+        window.onload = initGame;
+    </script>
+</body>
+</html>

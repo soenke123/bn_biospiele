@@ -4,13 +4,18 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project
 
-German-language biology study app ("Evolutionsfaktoren – Interaktives Glossar & Memory"). The whole app is a single static file, `index.html` (~700 lines: markup, a small `<style>` block, and one inline `<script>`). `README.md` is just a title (UTF-16 encoded).
+German-language collection of biology study games, built like the sibling repo `bi_minis`: the root `index.html` is the tile overview (with QR-code buttons) and lists every game in a hand-maintained `projects` array (`{folder, name, created}`, newest first). Each game is a single static file in its own folder:
 
-There is no build, package manager, linter, or test suite. To run it, open `index.html` in a browser. Tailwind (`cdn.tailwindcss.com`) and Font Awesome are loaded from CDNs, so a network connection is needed for styling and icons.
+- `evolutionsfaktoren/index.html` – "Evolutionsfaktoren – Interaktives Glossar & Memory" (described in detail below).
+- `koevolution/index.html` – "Wer gehört zu wem?": a one-player pairing game. Data is the `coevolutionPairs` array (`{id, type, title, description, item1, item2}`, each item `{name, icon}`). Icons are inline SVGs built with the `icon(bg, body)` helper; all gradients and clip paths live once in the shared hidden `<svg><defs>` at the top of `<body>` (so IDs stay unique while icons are rendered in the grid and in the modals). Reuse those defs for new icons instead of adding `<defs>` inside an icon.
 
-## Architecture
+To add a game: create `<folder>/index.html`, add a home link to `../index.html`, and add an entry to `projects` in the root `index.html`.
 
-All logic lives in the inline `<script>` at the bottom of `index.html`, using global state and `onclick="..."` handlers in the markup (no modules or framework).
+There is no build, package manager, linter, or test suite. Open the files in a browser. Tailwind and Font Awesome (fa-solid only) are vendored in `vendor/` and referenced from the games as `../vendor/...`, so everything works offline. `README.md` is just a title (UTF-16 encoded).
+
+## Architecture (`evolutionsfaktoren/index.html`)
+
+All logic lives in the inline `<script>` at the bottom of `evolutionsfaktoren/index.html`, using global state and `onclick="..."` handlers in the markup (no modules or framework).
 
 - **`rawDataset`**: the single source of truth, an array of `{ id, front, back }` glossary pairs (term and explanation). Both modes read from it. To add or change content, edit this array. Keep `id` values unique, because the memory game matches cards by `pairId`.
 - **`switchMode(mode)`**: toggles between the two modes by swapping Tailwind class strings on the tab buttons and the `hidden` class on `#mode-cards` / `#mode-memory`. Active and inactive tab styles are hardcoded strings here, so a tab restyle must be made in both the markup and this function. The memory game starts lazily on the first switch to it.

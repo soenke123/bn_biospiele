@@ -1,810 +1,327 @@
 <!DOCTYPE html>
-<html lang="de" class="h-full bg-slate-950 text-slate-100 font-sans">
+<html lang="de">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <title>Evolutionsfaktoren Glossar & Memory</title>
-    <!-- Tailwind CSS (lokal, offline) -->
-    <script src="vendor/tailwind.js"></script>
-    <!-- Font Awesome (lokal, nur fa-solid) -->
-    <link rel="stylesheet" href="vendor/fontawesome/css/all.min.css">
-    
-    <style>
-        /* Touch: kein Doppeltipp-Zoom, kein graues Tap-Highlight, kein Long-Press-Menü */
-        html, body, button {
-            touch-action: manipulation;
-            -webkit-tap-highlight-color: transparent;
-            -webkit-touch-callout: none;
-        }
-        /* Safe-Area (Notch / Home-Indicator) */
-        header { padding-top: env(safe-area-inset-top); }
-        body { padding-left: env(safe-area-inset-left); padding-right: env(safe-area-inset-right); padding-bottom: env(safe-area-inset-bottom); }
-
-        /* Custom 3D Perspective & Flip Styles */
-        .perspective-1000 {
-            perspective: 1000px;
-        }
-        .transform-style-3d {
-            transform-style: preserve-3d;
-        }
-        .backface-hidden {
-            backface-visibility: hidden;
-            -webkit-backface-visibility: hidden;
-        }
-        .rotate-y-180 {
-            transform: rotateY(180deg);
-        }
-
-        /* Scrollbar styling for smooth reading */
-        .custom-scrollbar::-webkit-scrollbar {
-            width: 6px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-track {
-            background: rgba(15, 23, 42, 0.6);
-            border-radius: 8px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb {
-            background: rgba(51, 65, 85, 0.8);
-            border-radius: 8px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-            background: rgba(71, 85, 105, 1);
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(-4px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        .animate-fade-in {
-            animation: fadeIn 0.25s ease-out forwards;
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>bn_biospiele</title>
+<style>
+  :root {
+    --bg: #0f1218;
+    --panel: #1a1f2b;
+    --panel-hover: #232a39;
+    --border: #2a3142;
+    --text: #e6e9f0;
+    --muted: #8b93a7;
+    --accent: #34d399;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    min-height: 100vh;
+  }
+  header { padding: 40px 16px 12px; max-width: 1100px; margin: 0 auto; }
+  h1 { margin: 0; font-size: 2rem; letter-spacing: .5px; }
+  h1 span { color: var(--accent); }
+  .sub { color: var(--muted); margin-top: 6px; }
+  main { max-width: 1100px; margin: 0 auto; padding: 16px; }
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 16px;
+  }
+  a.tile {
+    display: flex; flex-direction: column; justify-content: space-between;
+    min-height: 130px; padding: 18px;
+    background: var(--panel); border: 1px solid var(--border); border-radius: 12px;
+    color: inherit; text-decoration: none;
+    transition: transform .15s, background .15s, border-color .15s;
+  }
+  a.tile:hover { background: var(--panel-hover); border-color: var(--accent); transform: translateY(-2px); }
+  .tile .name { font-size: 1.15rem; font-weight: 600; word-break: break-word; }
+  .tile .folder { color: var(--muted); font-size: .8rem; margin-top: 4px; font-family: ui-monospace, Consolas, monospace; }
+  .tile .date { color: var(--muted); font-size: .85rem; margin-top: 16px; }
+  .tile-wrap { position: relative; display: flex; }
+  .tile-wrap a.tile { flex: 1; }
+  .qr-btn {
+    position: absolute; top: 10px; right: 10px;
+    width: 34px; height: 34px; padding: 5px;
+    background: var(--bg); border: 1px solid var(--border); border-radius: 8px;
+    color: var(--muted); cursor: pointer;
+    transition: color .15s, border-color .15s;
+  }
+  .qr-btn:hover { color: var(--accent); border-color: var(--accent); }
+  .qr-btn svg { width: 100%; height: 100%; display: block; }
+  .tile .name { padding-right: 36px; }
+  .qr-modal {
+    position: fixed; inset: 0; z-index: 10;
+    display: none; align-items: center; justify-content: center;
+    background: rgba(0, 0, 0, .7); padding: 16px;
+  }
+  .qr-modal.open { display: flex; }
+  .qr-card {
+    background: var(--panel); border: 1px solid var(--border); border-radius: 12px;
+    padding: 20px; text-align: center; max-width: 340px; width: 100%;
+  }
+  .qr-card h2 { margin: 0 0 14px; font-size: 1.05rem; }
+  .qr-card canvas { width: 100%; max-width: 280px; height: auto; image-rendering: pixelated; border-radius: 6px; }
+  .qr-url { color: var(--muted); font-size: .75rem; margin-top: 12px; word-break: break-all; font-family: ui-monospace, Consolas, monospace; }
+  .qr-close {
+    margin-top: 14px; padding: 8px 18px; cursor: pointer;
+    background: var(--bg); color: var(--text);
+    border: 1px solid var(--border); border-radius: 8px; font: inherit;
+  }
+  .qr-close:hover { border-color: var(--accent); }
+</style>
 </head>
-<body class="h-full flex flex-col bg-slate-950 text-slate-100 overflow-x-hidden select-none">
+<body>
+<header>
+  <h1>bn_<span>biospiele</span></h1>
+  <div class="sub">Interaktive Biologie-Spiele für den Unterricht</div>
+</header>
+<main>
+  <div id="grid" class="grid"></div>
+</main>
 
-    <!-- TOP HEADER & MODE NAVIGATION -->
-    <header class="w-full bg-slate-900 border-b border-slate-800 sticky top-0 z-30 shadow-md">
-        <div class="max-w-7xl mx-auto px-4 py-2 flex flex-col sm:flex-row items-center justify-between gap-2">
-            <div class="flex items-center gap-3">
-                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-500 to-teal-400 flex items-center justify-center text-slate-950 font-black text-xl shadow-lg shadow-emerald-500/20">
-                    <i class="fa-solid fa-dna"></i>
-                </div>
-                <div>
-                    <h1 class="text-base sm:text-lg font-bold text-slate-100 leading-tight">Evolutionsfaktoren</h1>
-                    <p class="text-xs text-slate-400">Interaktives Glossar & Memory</p>
-                </div>
-            </div>
+<div id="qrModal" class="qr-modal" role="dialog" aria-modal="true">
+  <div class="qr-card">
+    <h2 id="qrTitle"></h2>
+    <canvas id="qrCanvas"></canvas>
+    <div id="qrUrl" class="qr-url"></div>
+    <button id="qrClose" class="qr-close" type="button">Schließen</button>
+  </div>
+</div>
 
-            <!-- TAB SWITCHER -->
-            <div class="flex items-center gap-2 w-full sm:w-auto">
-            <div class="flex items-center bg-slate-950 p-1 rounded-xl border border-slate-800 flex-1 sm:flex-initial">
-                <button id="tab-btn-cards" onclick="switchMode('cards')" class="flex-1 sm:flex-initial px-4 py-2 rounded-lg text-xs sm:text-sm font-semibold transition-all flex items-center justify-center gap-2 bg-emerald-500 text-slate-950 shadow-md">
-                    <i class="fa-solid fa-clone"></i> Lernkarten
-                </button>
-                <button id="tab-btn-memory" onclick="switchMode('memory')" class="flex-1 sm:flex-initial px-4 py-2 rounded-lg text-xs sm:text-sm font-semibold transition-all flex items-center justify-center gap-2 text-slate-400 hover:text-slate-200">
-                    <i class="fa-solid fa-gamepad"></i> 2-Spieler Memory
-                </button>
-            </div>
-            <button id="fullscreen-btn" onclick="toggleFullscreen()" title="Vollbild" aria-label="Vollbild" class="hidden shrink-0 w-11 h-11 rounded-xl bg-slate-950 border border-slate-800 text-slate-300 hover:text-emerald-400 flex items-center justify-center transition">
-                <i id="fullscreen-icon" class="fa-solid fa-expand"></i>
-            </button>
-            </div>
-        </div>
-    </header>
+<script>
+  // Neue Spiele hier eintragen (neueste zuerst): Ordnername, Anzeigename, Erstelldatum.
+  const projects = [
+    { folder: 'koevolution', name: 'Wer gehört zu wem? – Koevolution', created: '2026-10-28' },
+    { folder: 'evolutionsfaktoren', name: 'Evolutionsfaktoren – Glossar & Memory', created: '2026-10-25' },
+  ];
 
-    <!-- MAIN CONTENT WRAPPER -->
-    <main class="flex-1 w-full max-w-7xl mx-auto p-2 sm:p-4 flex flex-col min-h-0 overflow-y-auto">
+  // --- Minimaler QR-Code-Generator (Byte-Modus, Fehlerkorrektur M, Version 1-20) ---
+  const QR_ECC = [-1,10,16,26,18,24,16,18,22,22,26,30,22,22,24,24,28,28,26,26,26];
+  const QR_BLOCKS = [-1,1,1,1,2,2,4,4,4,5,5,5,8,9,9,10,10,11,13,14,16];
 
-        <!-- ================= MODE 1: FLASHCARDS ================= -->
-        <section id="mode-cards" class="flex-1 flex flex-col items-center justify-center max-w-2xl mx-auto w-full">
-            
-            <!-- Card Controls Info -->
-            <div class="w-full mb-3 flex items-center justify-between text-xs sm:text-sm text-slate-400">
-                <span id="card-counter" class="font-semibold text-emerald-400 bg-emerald-950/60 border border-emerald-800/50 px-3 py-1 rounded-full">
-                    Karte 1 von 24
-                </span>
-                
-                <div class="flex items-center gap-2">
-                    <button onclick="shuffleCards()" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-800 hover:border-emerald-500/50 hover:text-emerald-300 transition-all font-medium">
-                        <i class="fa-solid fa-shuffle text-xs"></i> Mischen
-                    </button>
-                    <button onclick="resetCardsOrder()" class="px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-800 hover:border-slate-700 text-slate-300 hover:text-white transition-all font-medium">
-                        Sortieren
-                    </button>
-                </div>
-            </div>
+  function qrRawModules(ver) {
+    let r = (16 * ver + 128) * ver + 64;
+    if (ver >= 2) { const n = Math.floor(ver / 7) + 2; r -= (25 * n - 10) * n - 55; if (ver >= 7) r -= 36; }
+    return r;
+  }
+  function gfMul(x, y) {
+    let z = 0;
+    for (let i = 7; i >= 0; i--) { z = (z << 1) ^ ((z >>> 7) * 0x11D); z ^= ((y >>> i) & 1) * x; }
+    return z;
+  }
+  function rsDivisor(d) {
+    const res = new Array(d).fill(0); res[d - 1] = 1;
+    let root = 1;
+    for (let i = 0; i < d; i++) {
+      for (let j = 0; j < d; j++) { res[j] = gfMul(res[j], root); if (j + 1 < d) res[j] ^= res[j + 1]; }
+      root = gfMul(root, 2);
+    }
+    return res;
+  }
+  function rsRemainder(data, div) {
+    const res = new Array(div.length).fill(0);
+    for (const b of data) {
+      const f = b ^ res.shift(); res.push(0);
+      div.forEach((c, i) => { res[i] ^= gfMul(c, f); });
+    }
+    return res;
+  }
 
-            <!-- Progress Bar -->
-            <div class="w-full bg-slate-900 rounded-full h-2 mb-6 overflow-hidden border border-slate-800">
-                <div id="progress-bar" class="bg-gradient-to-r from-emerald-500 to-teal-400 h-2 transition-all duration-300" style="width: 4.16%;"></div>
-            </div>
+  function makeQr(text) {
+    const bytes = Array.from(new TextEncoder().encode(text));
+    let ver = 1;
+    for (;; ver++) {
+      if (ver > 20) throw new Error('Text zu lang für QR-Code');
+      const cap = Math.floor(qrRawModules(ver) / 8) - QR_ECC[ver] * QR_BLOCKS[ver];
+      if (4 + (ver < 10 ? 8 : 16) + bytes.length * 8 <= cap * 8) break;
+    }
+    const nBlocks = QR_BLOCKS[ver], eccLen = QR_ECC[ver];
+    const rawCw = Math.floor(qrRawModules(ver) / 8);
+    const dataCw = rawCw - eccLen * nBlocks;
 
-            <!-- 3D Flashcard Container -->
-            <div class="w-full h-80 sm:h-96 perspective-1000 cursor-pointer" onclick="flipCard()">
-                <div id="card-inner" class="relative w-full h-full transform-style-3d transition-transform duration-500 shadow-2xl rounded-2xl">
-                    
-                    <!-- Front Side -->
-                    <div class="absolute w-full h-full backface-hidden bg-slate-900 border-2 border-slate-800 rounded-2xl p-6 sm:p-10 flex flex-col items-center justify-center text-center shadow-emerald-950/20 shadow-xl hover:border-emerald-500/50 transition-colors">
-                        <span class="text-xs font-bold tracking-wider text-emerald-400 uppercase bg-emerald-950/80 border border-emerald-800 px-3 py-1 rounded-full mb-6">Fachbegriff</span>
-                        <h2 id="card-front" class="text-2xl sm:text-3xl font-black text-slate-100 leading-tight"></h2>
-                        <span class="text-xs text-slate-500 mt-8 flex items-center gap-1.5 font-medium">
-                            <i class="fa-solid fa-rotate"></i> Klicken oder Leertaste zum Umdrehen
-                        </span>
-                    </div>
+    const bits = [];
+    const put = (v, n) => { for (let i = n - 1; i >= 0; i--) bits.push((v >>> i) & 1); };
+    put(4, 4); put(bytes.length, ver < 10 ? 8 : 16);
+    bytes.forEach(b => put(b, 8));
+    put(0, Math.min(4, dataCw * 8 - bits.length));
+    while (bits.length % 8) bits.push(0);
+    for (let pad = 0xEC; bits.length < dataCw * 8; pad ^= 0xEC ^ 0x11) put(pad, 8);
+    const data = [];
+    for (let i = 0; i < bits.length; i += 8) data.push(parseInt(bits.slice(i, i + 8).join(''), 2));
 
-                    <!-- Back Side -->
-                    <div class="absolute w-full h-full backface-hidden rotate-y-180 bg-slate-900 border-2 border-emerald-500/50 rounded-2xl p-6 sm:p-8 flex flex-col items-center justify-center text-center shadow-xl">
-                        <span class="text-xs font-bold tracking-wider text-teal-400 uppercase bg-teal-950/80 border border-teal-800 px-3 py-1 rounded-full mb-4">Erklärung</span>
-                        <div class="overflow-y-auto max-h-56 w-full pr-2 custom-scrollbar flex items-center justify-center">
-                            <p id="card-back" class="text-base sm:text-lg text-slate-200 leading-relaxed font-normal"></p>
-                        </div>
-                    </div>
+    // Blöcke bilden, Fehlerkorrektur anhängen, verschachteln
+    const nShort = nBlocks - rawCw % nBlocks, shortLen = Math.floor(rawCw / nBlocks);
+    const div = rsDivisor(eccLen), blocks = [];
+    for (let i = 0, k = 0; i < nBlocks; i++) {
+      const dat = data.slice(k, k + shortLen - eccLen + (i < nShort ? 0 : 1));
+      k += dat.length;
+      const ecc = rsRemainder(dat, div);
+      if (i < nShort) dat.push(0);
+      blocks.push(dat.concat(ecc));
+    }
+    const cw = [];
+    for (let i = 0; i < blocks[0].length; i++)
+      blocks.forEach((b, j) => { if (i !== shortLen - eccLen || j >= nShort) cw.push(b[i]); });
 
-                </div>
-            </div>
+    // Matrix aufbauen
+    const size = ver * 4 + 17;
+    const mod = Array.from({ length: size }, () => new Array(size).fill(false));
+    const fn = Array.from({ length: size }, () => new Array(size).fill(false));
+    const set = (x, y, v) => { mod[y][x] = v; fn[y][x] = true; };
 
-            <!-- Navigation Buttons -->
-            <div class="flex items-center gap-4 mt-6 w-full">
-                <button onclick="prevCard()" class="flex-1 py-3 px-4 rounded-xl bg-slate-900 border border-slate-800 hover:border-emerald-500/40 hover:bg-slate-850 text-slate-200 font-semibold transition flex items-center justify-center gap-2 shadow-md">
-                    <i class="fa-solid fa-arrow-left"></i> Zurück
-                </button>
-                <button onclick="flipCard()" class="py-3 px-5 rounded-xl bg-slate-800 hover:bg-slate-700 text-emerald-400 font-bold transition flex items-center justify-center shadow-md">
-                    <i class="fa-solid fa-arrows-rotate text-lg"></i>
-                </button>
-                <button onclick="nextCard()" class="flex-1 py-3 px-4 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold transition flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/20">
-                    Weiter <i class="fa-solid fa-arrow-right"></i>
-                </button>
-            </div>
-            
-            <p class="text-xs text-slate-500 mt-4 text-center">
-                Tipp: Nutze die Tastatur mit <kbd class="px-1.5 py-0.5 bg-slate-800 border border-slate-700 rounded text-slate-300">←</kbd> <kbd class="px-1.5 py-0.5 bg-slate-800 border border-slate-700 rounded text-slate-300">→</kbd> und <kbd class="px-1.5 py-0.5 bg-slate-800 border border-slate-700 rounded text-slate-300">Leertaste</kbd>!
-            </p>
-        </section>
+    for (let i = 0; i < size; i++) { set(6, i, i % 2 === 0); set(i, 6, i % 2 === 0); }
+    const finder = (cx, cy) => {
+      for (let dy = -4; dy <= 4; dy++) for (let dx = -4; dx <= 4; dx++) {
+        const d = Math.max(Math.abs(dx), Math.abs(dy)), x = cx + dx, y = cy + dy;
+        if (x >= 0 && x < size && y >= 0 && y < size) set(x, y, d !== 2 && d !== 4);
+      }
+    };
+    finder(3, 3); finder(size - 4, 3); finder(3, size - 4);
+    let align = [];
+    if (ver > 1) {
+      const n = Math.floor(ver / 7) + 2;
+      const step = ver === 32 ? 26 : Math.ceil((ver * 4 + 4) / (n * 2 - 2)) * 2;
+      align = [6];
+      for (let pos = size - 7; align.length < n; pos -= step) align.splice(1, 0, pos);
+    }
+    align.forEach((ax, i) => align.forEach((ay, j) => {
+      if ((i === 0 && j === 0) || (i === 0 && j === align.length - 1) || (i === align.length - 1 && j === 0)) return;
+      for (let dy = -2; dy <= 2; dy++) for (let dx = -2; dx <= 2; dx++)
+        set(ax + dx, ay + dy, Math.max(Math.abs(dx), Math.abs(dy)) !== 1);
+    }));
+    const formatBits = mask => {
+      let rem = mask; // Stufe M = 0b00
+      for (let i = 0; i < 10; i++) rem = (rem << 1) ^ ((rem >>> 9) * 0x537);
+      const b = ((mask << 10) | rem) ^ 0x5412, bit = i => ((b >>> i) & 1) !== 0;
+      for (let i = 0; i <= 5; i++) set(8, i, bit(i));
+      set(8, 7, bit(6)); set(8, 8, bit(7)); set(7, 8, bit(8));
+      for (let i = 9; i < 15; i++) set(14 - i, 8, bit(i));
+      for (let i = 0; i < 8; i++) set(size - 1 - i, 8, bit(i));
+      for (let i = 8; i < 15; i++) set(8, size - 15 + i, bit(i));
+      set(8, size - 8, true);
+    };
+    formatBits(0);
+    if (ver >= 7) {
+      let rem = ver;
+      for (let i = 0; i < 12; i++) rem = (rem << 1) ^ ((rem >>> 11) * 0x1F25);
+      const b = (ver << 12) | rem;
+      for (let i = 0; i < 18; i++) {
+        const v = ((b >>> i) & 1) !== 0, a = size - 11 + i % 3, c = Math.floor(i / 3);
+        set(a, c, v); set(c, a, v);
+      }
+    }
 
+    // Daten-Module im Zickzack platzieren
+    let bi = 0;
+    for (let right = size - 1; right >= 1; right -= 2) {
+      if (right === 6) right = 5;
+      for (let vert = 0; vert < size; vert++) for (let j = 0; j < 2; j++) {
+        const x = right - j, y = ((right + 1) & 2) === 0 ? size - 1 - vert : vert;
+        if (!fn[y][x] && bi < cw.length * 8) { mod[y][x] = ((cw[bi >>> 3] >>> (7 - (bi & 7))) & 1) !== 0; bi++; }
+      }
+    }
 
-        <!-- ================= MODE 2: MEMORY GAME ================= -->
-        <section id="mode-memory" class="hidden flex-1 flex flex-col min-h-0 w-full">
-
-            <!-- Compact top bar: settings, scores, turn hint -->
-            <div class="bg-slate-900 border border-slate-800 rounded-xl px-2.5 py-1.5 mb-2 flex flex-wrap items-center gap-x-3 gap-y-1.5 shadow-md shrink-0">
-                <div class="flex items-center gap-1.5">
-                    <select id="pair-select" onchange="startNewMemoryGame()" class="bg-slate-950 border border-slate-700 text-slate-200 text-xs rounded-lg px-2 py-1 font-semibold focus:outline-none focus:border-emerald-500">
-                        <option value="6">6 Paare</option>
-                        <option value="8" selected>8 Paare</option>
-                        <option value="12">12 Paare</option>
-                        <option value="24">24 Paare (Alle)</option>
-                    </select>
-                    <button onclick="startNewMemoryGame()" title="Neustart" class="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 text-xs font-semibold rounded-lg transition flex items-center gap-1.5">
-                        <i class="fa-solid fa-rotate-right text-emerald-400"></i> Neustart
-                    </button>
-                </div>
-
-                <div class="flex items-center gap-2">
-                    <div id="p1-card" class="px-3 py-1 rounded-lg border-2 transition-all flex items-center gap-1.5 border-emerald-500 bg-emerald-950/40">
-                        <i class="fa-solid fa-user text-emerald-400 text-xs"></i>
-                        <span class="text-xs font-bold text-slate-200">Spieler 1</span>
-                        <span id="p1-score" class="text-base font-black text-emerald-400 leading-none">0</span>
-                    </div>
-                    <div id="p2-card" class="px-3 py-1 rounded-lg border-2 transition-all flex items-center gap-1.5 border-slate-800 bg-slate-950/40 opacity-60">
-                        <i class="fa-solid fa-user text-cyan-400 text-xs"></i>
-                        <span class="text-xs font-bold text-slate-200">Spieler 2</span>
-                        <span id="p2-score" class="text-base font-black text-cyan-400 leading-none">0</span>
-                    </div>
-                </div>
-
-                <div class="flex items-center gap-2 text-xs text-slate-300 min-w-0">
-                    <span id="turn-dot" class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse shrink-0"></span>
-                    <span id="turn-text" class="font-semibold truncate"></span>
-                </div>
-            </div>
-
-            <!-- TWO EQUAL BOARDS -->
-            <div class="flex-1 min-h-0 grid grid-cols-2 gap-2 sm:gap-3">
-                <div class="min-h-0 flex flex-col bg-slate-900/80 rounded-xl p-2 border border-blue-500/30">
-                    <div class="flex items-center gap-2 mb-1.5 text-xs sm:text-sm font-bold text-blue-400 shrink-0">
-                        <span class="w-2.5 h-2.5 rounded-full bg-blue-500"></span> Fachbegriffe
-                    </div>
-                    <div id="term-grid" class="flex-1 min-h-0 grid gap-1.5 sm:gap-2"></div>
-                </div>
-                <div class="min-h-0 flex flex-col bg-slate-900/80 rounded-xl p-2 border border-amber-500/30">
-                    <div class="flex items-center gap-2 mb-1.5 text-xs sm:text-sm font-bold text-amber-400 shrink-0">
-                        <span class="w-2.5 h-2.5 rounded-full bg-amber-500"></span> Erklärungen
-                    </div>
-                    <div id="expl-grid" class="flex-1 min-h-0 grid gap-1.5 sm:gap-2"></div>
-                </div>
-            </div>
-
-            <!-- REVIEW OVERLAY: the two chosen cards fly in here -->
-            <div id="review-layer" class="hidden fixed inset-0 z-40">
-                <div id="review-backdrop" class="absolute inset-0 bg-slate-950/85 backdrop-blur-sm opacity-0 transition-opacity duration-500"></div>
-                <div id="review-msg" class="absolute left-0 right-0 text-center text-lg sm:text-2xl font-black text-slate-100 opacity-0 transition-opacity duration-300 pointer-events-none"></div>
-                <div id="review-actions" class="absolute left-1/2 -translate-x-1/2 flex items-center gap-3 opacity-0 pointer-events-none transition-opacity duration-300 z-[70]">
-                    <button onclick="handleUserDecision(true)" class="px-5 py-3 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-sm sm:text-base shadow-lg flex items-center gap-2">
-                        <i class="fa-solid fa-check"></i> Ja, Paar!
-                    </button>
-                    <button onclick="handleUserDecision(false)" class="px-5 py-3 rounded-xl bg-rose-500 hover:bg-rose-400 text-white font-black text-sm sm:text-base shadow-lg flex items-center gap-2">
-                        <i class="fa-solid fa-xmark"></i> Nein
-                    </button>
-                </div>
-            </div>
-        </section>
-
-    </main>
-
-    <!-- WINNER MODAL -->
-    <div id="winner-modal" class="hidden fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-        <div class="bg-slate-900 border-2 border-emerald-500/50 rounded-2xl p-6 sm:p-8 max-w-md w-full shadow-2xl text-center animate-fade-in">
-            <div class="w-16 h-16 rounded-full bg-emerald-500/20 border border-emerald-500/50 text-emerald-400 text-3xl flex items-center justify-center mx-auto mb-4">
-                <i class="fa-solid fa-trophy"></i>
-            </div>
-            <h2 id="winner-title" class="text-2xl font-black text-slate-100 mb-2">Spiel beendet!</h2>
-            <p id="winner-text" class="text-slate-300 text-sm mb-6 leading-relaxed"></p>
-            
-            <div class="bg-slate-950 border border-slate-800 rounded-xl p-4 mb-6 flex items-center justify-around">
-                <div>
-                    <div class="text-xs text-slate-400 font-semibold">Spieler 1</div>
-                    <div id="final-p1" class="text-2xl font-black text-emerald-400">0</div>
-                </div>
-                <div class="text-slate-700 font-bold text-xl">:</div>
-                <div>
-                    <div class="text-xs text-slate-400 font-semibold">Spieler 2</div>
-                    <div id="final-p2" class="text-2xl font-black text-cyan-400">0</div>
-                </div>
-            </div>
-
-            <button onclick="closeWinnerModal(); startNewMemoryGame();" class="w-full py-3 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black rounded-xl transition shadow-lg shadow-emerald-500/20">
-                Neues Spiel starten
-            </button>
-        </div>
-    </div>
-
-    <!-- APPLICATION LOGIC SCRIPT -->
-    <script>
-        // RAW GLOSSARY DATASET (24 Pairs)
-        const rawDataset = [
-            { id: 1, front: "Evolutionsfaktoren", back: "Mechanismen, die ursächlich für Evolution sind (Genetische Variation als Voraussetzung, durch Gendrift oder Selektion Veränderung der Allelhäufigkeit in einer Population)" },
-            { id: 2, front: "Phänotyp / Genotyp", back: "Gesamtheit aller Merkmale eines Organismus (Genetik und Umweltfaktoren) / Gesamtheit aller Gene eines Organismus" },
-            { id: 3, front: "Allel / Gen", back: "Variante eines Gens / Abschnitt auf der DNA, der für ein bestimmtes Protein (Merkmal) codiert" },
-            { id: 4, front: "Rekombination", back: "Bildung einer neuen Kombination der Gene im Laufe der Meiose" },
-            { id: 5, front: "Mutation", back: "Spontan auftretende, dauerhafte Veränderung des Erbgutes (Genm., Chromosomenm., Genomm.)" },
-            { id: 6, front: "Genpool", back: "Gesamtheit aller Allele (Genvarianten) in einer Population" },
-            { id: 7, front: "Genetische Variation / Variabilität", back: "Das Vorhandensein (vieler) verschiedener Allele innerhalb einer Population" },
-            { id: 8, front: "Gendrift", back: "Zufällige Veränderung der Allelhäufigkeit innerhalb eines Genpools einer Population (Gründereffekt oder Flaschenhalseffekt)" },
-            { id: 9, front: "Gründereffekt", back: "Genetische Abweichung einer isolierten Gründerpopulation (z.B. auf Inseln) von der Stammpopulation (z.B. auf dem Festland) – geringere genetische Variation" },
-            { id: 10, front: "Flaschenhalseffekt", back: "Durch starke Reduktion hervorgerufene, geringe genetische Variation einer Population" },
-            { id: 11, front: "Natürliche Selektion", back: "An ihre Umwelt besser angepasste Individuen einer Population haben eine höhere Wahrscheinlichkeit ihre Gene weiterzugeben als schlechter angepasste Individuen (Fortpflanzungserfolg/Fitness). Über Generationen führt der Vorgang der Selektion zur Veränderung der Angepasstheit" },
-            { id: 12, front: "Selektionsdruck", back: "Umweltbedingung, die eine Veränderung der Anpassung notwendig machen" },
-            { id: 13, front: "Selektionsvorteil", back: "Vorteil eines Individuums gegenüber eines anderen aufgrund eines phänotypischen Merkmals, der sich auf Überleben bzw. Fortpflanzungserfolg auswirkt" },
-            { id: 14, front: "Selektionsfaktoren", back: "Umweltfaktor, der einen Einfluss auf den Fortpflanzungserfolg (Fitness) eines Individuums hat" },
-            { id: 15, front: "Gerichtete Selektion", back: "Form der natürlichen Selektion, bei der Merkmale einer Population einseitig bevorzugt werden, wodurch sich die Merkmalsausprägung in eine bestimmte Richtung verschiebt (z.B. immer größere Individuen)" },
-            { id: 16, front: "Stabilisierende Selektion", back: "Begünstigt die durchschnittlichen Merkmalsausprägungen einer Population und reduziert extreme Varianten, wodurch der Mittelwert stabilisiert wird (z.B. mittelgroße Individuen)" },
-            { id: 17, front: "Aufspaltende Selektion", back: "Fördert Individuen mit extremen Merkmalsausprägungen, während durchschnittliche Merkmalsausprägungen benachteiligt werden (z.B. sehr kleine und sehr große Individuen)" },
-            { id: 18, front: "Sexuelle Selektion", back: "Innerartliche Selektion, als Sexualpartner werden diejenigen ausgewählt, die potentiell günstige Merkmale vererben und diese äußerlich sichtbar machen" },
-            { id: 19, front: "Handicap-Prinzip", back: "Körperliches Handicap (z.B. großes Geweih, lange Federn) als besonderes Zeichen für Qualität/gute Erbanlagen (Überleben trotz des körperlichen Handicaps)" },
-            { id: 20, front: "Art", back: "Eine Art besteht aus einer Population, deren Genpool gegen andere isoliert ist." },
-            { id: 21, front: "Präzygotische Isolationsmechanismen", back: "Keine Paarung bzw. keine Befruchtung möglich. Geogr. Separation; Etholog. Isolation (z.B. keine sexuelle Anziehung Sprache); zeitl. Isolation (versch. Jahreszeiten verhindern Paarung); mechanische Isolation (keine Paarung möglich – Sexualorgane); gametische Isolation (trotz Paarung keine Zygote)" },
-            { id: 22, front: "Postzygotische Isolationsmechanismen", back: "Isolation nach Ausbildung der Zygote. Hybrid-Sterilität (Nachkommen nicht fruchtbar); Hybrid-Sterblichkeit (Embryonalentwicklung wird abgebrochen); Hybrid-Zusammenbruch (abnehmende Vitalität bei Folgegenerationen)" },
-            { id: 23, front: "Allopatrische Artbildung", back: "Artbildung durch geogr. Separation (z.B. Gebirgsbildung, Eiszeiten). Dadurch, dass auf beide Populationen unterschiedliche Selektionsdrücke wirken (versch. Lebensräume = versch. Selektionsfaktoren) und versch. Mutationen entstehen, verändern sich die jeweiligen Genpools stark. Schließlich unterscheiden sich die Individuen so sehr, dass keine fruchtbaren Nachkommen mehr gezeugt werden können." },
-            { id: 24, front: "Sympatrische Artbildung", back: "Artbildung ohne geogr. Separation. Z.B. dadurch, dass eine starke natürliche Selektion wirkt (aufspaltende Selektion) kommt es zu einer ökologischen Isolation, also z.B. versch. Nahrungsquellen, wodurch unterschiedliche Selektionsfaktoren wirken und die Genpools beginnen sich zu unterscheiden oder starke sexuelle Selektion, z.B. veränderte Partnerwahl durch neue Farbvariante" }
-        ];
-
-        // STATE APP VARIABLES
-        let activeMode = 'cards'; // 'cards' | 'memory'
-        
-        // Flashcard State
-        let flashcardDeck = [...rawDataset];
-        let currentCardIndex = 0;
-        let isCardFlipped = false;
-
-        // Memory State
-        let totalPairs = 8;
-        let termCards = [];
-        let explCards = [];
-        let flippedMemoryCards = []; // max 2: {side: 'term'|'expl', index: number, card: object}
-        let activePlayer = 1;
-        let scores = { 1: 0, 2: 0 };
-        let matchedPairsCount = 0;
-        let isProcessingTurn = false;
-
-        // MODE SWITCHING
-        function switchMode(mode) {
-            activeMode = mode;
-            const btnCards = document.getElementById('tab-btn-cards');
-            const btnMemory = document.getElementById('tab-btn-memory');
-            const modeCards = document.getElementById('mode-cards');
-            const modeMemory = document.getElementById('mode-memory');
-
-            if (mode === 'cards') {
-                btnCards.className = "flex-1 sm:flex-initial px-4 py-2 rounded-lg text-xs sm:text-sm font-semibold transition-all flex items-center justify-center gap-2 bg-emerald-500 text-slate-950 shadow-md";
-                btnMemory.className = "flex-1 sm:flex-initial px-4 py-2 rounded-lg text-xs sm:text-sm font-semibold transition-all flex items-center justify-center gap-2 text-slate-400 hover:text-slate-200";
-                modeCards.classList.remove('hidden');
-                modeMemory.classList.add('hidden');
-            } else {
-                btnMemory.className = "flex-1 sm:flex-initial px-4 py-2 rounded-lg text-xs sm:text-sm font-semibold transition-all flex items-center justify-center gap-2 bg-emerald-500 text-slate-950 shadow-md";
-                btnCards.className = "flex-1 sm:flex-initial px-4 py-2 rounded-lg text-xs sm:text-sm font-semibold transition-all flex items-center justify-center gap-2 text-slate-400 hover:text-slate-200";
-                modeMemory.classList.remove('hidden');
-                modeCards.classList.add('hidden');
-                
-                if (termCards.length === 0) {
-                    startNewMemoryGame();
-                }
-            }
+    // Beste Maske wählen (vereinfachte Strafpunkte)
+    const masks = [
+      (x, y) => (x + y) % 2 === 0, (x, y) => y % 2 === 0, (x, y) => x % 3 === 0,
+      (x, y) => (x + y) % 3 === 0, (x, y) => (Math.floor(x / 3) + Math.floor(y / 2)) % 2 === 0,
+      (x, y) => x * y % 2 + x * y % 3 === 0, (x, y) => (x * y % 2 + x * y % 3) % 2 === 0,
+      (x, y) => ((x + y) % 2 + x * y % 3) % 2 === 0,
+    ];
+    const apply = m => {
+      for (let y = 0; y < size; y++) for (let x = 0; x < size; x++)
+        if (!fn[y][x] && masks[m](x, y)) mod[y][x] = !mod[y][x];
+    };
+    const penalty = () => {
+      let p = 0;
+      for (let t = 0; t < 2; t++) for (let a = 0; a < size; a++) {
+        let run = 1;
+        for (let b = 1; b < size; b++) {
+          const cur = t ? mod[b][a] : mod[a][b], prev = t ? mod[b - 1][a] : mod[a][b - 1];
+          if (cur === prev) { run++; if (run === 5) p += 3; else if (run > 5) p++; } else run = 1;
         }
-
-        // --- MODE 1: FLASHCARD LOGIC ---
-        const cardInner = document.getElementById('card-inner');
-        const cardFront = document.getElementById('card-front');
-        const cardBack = document.getElementById('card-back');
-        const cardCounter = document.getElementById('card-counter');
-        const progressBar = document.getElementById('progress-bar');
-
-        function renderFlashcard() {
-            cardFront.textContent = flashcardDeck[currentCardIndex].front;
-            cardBack.textContent = flashcardDeck[currentCardIndex].back;
-            cardCounter.textContent = `Karte ${currentCardIndex + 1} von ${flashcardDeck.length}`;
-            progressBar.style.width = `${((currentCardIndex + 1) / flashcardDeck.length) * 100}%`;
-        }
-
-        function updateFlashcardUI() {
-            if (isCardFlipped) {
-                cardInner.classList.remove('rotate-y-180');
-                isCardFlipped = false;
-                setTimeout(() => renderFlashcard(), 200);
-            } else {
-                renderFlashcard();
-            }
-        }
-
-        function flipCard() {
-            isCardFlipped = !isCardFlipped;
-            cardInner.classList.toggle('rotate-y-180', isCardFlipped);
-        }
-
-        function nextCard() {
-            currentCardIndex = (currentCardIndex + 1) % flashcardDeck.length;
-            updateFlashcardUI();
-        }
-
-        function prevCard() {
-            currentCardIndex = (currentCardIndex - 1 + flashcardDeck.length) % flashcardDeck.length;
-            updateFlashcardUI();
-        }
-
-        function shuffleCards() {
-            for (let i = flashcardDeck.length - 1; i > 0; i--) {
-                const j = Math.floor(Math.random() * (i + 1));
-                [flashcardDeck[i], flashcardDeck[j]] = [flashcardDeck[j], flashcardDeck[i]];
-            }
-            currentCardIndex = 0;
-            updateFlashcardUI();
-        }
-
-        function resetCardsOrder() {
-            flashcardDeck = [...rawDataset];
-            currentCardIndex = 0;
-            updateFlashcardUI();
-        }
-
-        // --- MODE 2: MEMORY GAME LOGIC ---
-        const FLY_MS = 650;
-        let reviewCards = []; // [{wrap, inner, origin, card, side, index}]
-
-        function startNewMemoryGame() {
-            const pairSelect = document.getElementById('pair-select');
-            totalPairs = parseInt(pairSelect.value, 10);
-
-            const shuffledDataset = [...rawDataset].sort(() => Math.random() - 0.5);
-            const selectedPairs = shuffledDataset.slice(0, totalPairs);
-
-            termCards = selectedPairs.map((pair) => ({ pairId: pair.id, type: 'term', text: pair.front, isFlipped: false, isMatched: false }));
-            explCards = selectedPairs.map((pair) => ({ pairId: pair.id, type: 'expl', text: pair.back, isFlipped: false, isMatched: false }));
-            termCards.sort(() => Math.random() - 0.5);
-            explCards.sort(() => Math.random() - 0.5);
-
-            flippedMemoryCards = [];
-            activePlayer = 1;
-            scores = { 1: 0, 2: 0 };
-            matchedPairsCount = 0;
-            isProcessingTurn = false;
-
-            hideReview();
-            updateScoreboardUI();
-            renderMemoryGrids();
-        }
-
-        function gridColumns() {
-            const narrow = window.innerWidth < 640;
-            if (totalPairs <= 6) return narrow ? 2 : 3;
-            if (totalPairs <= 8) return narrow ? 2 : 4;
-            if (totalPairs <= 12) return narrow ? 3 : 4;
-            return narrow ? 3 : 6;
-        }
-
-        function renderMemoryGrids() {
-            const cols = gridColumns();
-            const rows = Math.ceil(totalPairs / cols);
-            [['term-grid', termCards, 'term'], ['expl-grid', explCards, 'expl']].forEach(([id, cards, side]) => {
-                const grid = document.getElementById(id);
-                grid.innerHTML = '';
-                // identical grid geometry on both sides -> identical card sizes
-                grid.style.gridTemplateColumns = `repeat(${cols}, minmax(0, 1fr))`;
-                grid.style.gridTemplateRows = `repeat(${rows}, minmax(0, 1fr))`;
-                cards.forEach((card, index) => grid.appendChild(createMemoryCardElement(card, side, index)));
-            });
-        }
-
-        const SIDE_STYLE = {
-            term: { border: 'border-blue-600/70 hover:border-blue-400', icon: 'bg-blue-950 border-blue-500/50 text-blue-400', label: 'text-blue-400', text: 'Fachbegriff' },
-            expl: { border: 'border-amber-600/70 hover:border-amber-400', icon: 'bg-amber-950 border-amber-500/50 text-amber-400', label: 'text-amber-400', text: 'Erklärung' }
-        };
-
-        function coverHTML(side) {
-            const s = SIDE_STYLE[side];
-            return `<div class="w-7 h-7 sm:w-9 sm:h-9 rounded-lg border ${s.icon} flex items-center justify-center font-bold text-sm sm:text-base">?</div>
-                    <span class="hidden sm:block mt-1 text-[10px] font-bold uppercase tracking-wider ${s.label}">${s.text}</span>`;
-        }
-
-        const FLIP_MS = 450;   // flip on the board
-        const HOLD_MS = 500;   // cards rest face-up before flying / before turning back
-
-        // Fits the text into its box by shrinking the font (no scrolling, no overflow)
-        function fitText(p, box, max, min) {
-            let lo = min, hi = max;
-            const fits = (px) => {
-                p.style.fontSize = px + 'px';
-                return p.offsetHeight <= box.clientHeight && p.scrollWidth <= box.clientWidth;
-            };
-            if (fits(hi)) return hi;
-            while (hi - lo > 0.5) {
-                const mid = (lo + hi) / 2;
-                if (fits(mid)) lo = mid; else hi = mid;
-            }
-            p.style.fontSize = lo + 'px';
-            return lo;
-        }
-
-        // Face (revealed side) of a card. Used on the board and for the flying clone.
-        function makeFace(card, side) {
-            const isTerm = side === 'term';
-            const face = document.createElement('div');
-            face.className = `absolute inset-0 backface-hidden rotate-y-180 bg-slate-900 border-2 rounded-lg overflow-hidden flex shadow-xl ${isTerm ? 'border-blue-500' : 'border-amber-500'}`;
-            const box = document.createElement('div');
-            box.className = 'flex-1 min-w-0 min-h-0 overflow-hidden flex items-center justify-center';
-            const p = document.createElement('p');
-            p.className = `w-full text-center leading-tight ${isTerm ? 'font-black text-blue-100' : 'text-amber-100'}`;
-            p.style.hyphens = 'auto';
-            p.style.overflowWrap = 'break-word';
-            p.textContent = card.text;
-            box.appendChild(p);
-            face.appendChild(box);
-            return { face, box, p };
-        }
-
-        function setFacePadding(face, px) {
-            face.style.padding = px + 'px';
-        }
-
-        function createMemoryCardElement(card, side, index) {
-            const el = document.createElement('div');
-            el.id = `mem-card-${side}-${index}`;
-            if (card.isMatched) {
-                el.className = "rounded-lg border border-dashed border-slate-800/70 opacity-40";
-                return el;
-            }
-            const s = SIDE_STYLE[side];
-            el.className = "min-h-0 perspective-1000 cursor-pointer";
-
-            const inner = document.createElement('div');
-            inner.className = 'relative w-full h-full transform-style-3d';
-            inner.style.transition = `transform ${FLIP_MS}ms ease`;
-
-            const cover = document.createElement('div');
-            cover.className = `absolute inset-0 backface-hidden bg-slate-900 border-2 ${s.border} rounded-lg flex flex-col items-center justify-center shadow-md transition-colors`;
-            cover.innerHTML = coverHTML(side);
-
-            const f = makeFace(card, side);
-            setFacePadding(f.face, 3);
-            inner.append(cover, f.face);
-            el.appendChild(inner);
-            el.onclick = () => handleMemoryCardClick(side, index);
-            return el;
-        }
-
-        function handleMemoryCardClick(side, index) {
-            const cardList = side === 'term' ? termCards : explCards;
-            const card = cardList[index];
-
-            if (isProcessingTurn || card.isFlipped || card.isMatched) return;
-            if (flippedMemoryCards.length === 1 && flippedMemoryCards[0].side === side) return;
-
-            card.isFlipped = true;
-            flippedMemoryCards.push({ side, index, card });
-
-            // reveal immediately, so the player can look for the matching card
-            const inner = document.getElementById(`mem-card-${side}-${index}`).firstChild;
-            const face = inner.lastChild;
-            fitText(face.querySelector('p'), face.firstChild, 14, 3);
-            inner.style.transform = 'rotateY(180deg)';
-
-            if (flippedMemoryCards.length === 2) {
-                isProcessingTurn = true;
-                setTimeout(startReview, FLIP_MS + HOLD_MS);
-            }
-        }
-
-        // --- REVIEW OVERLAY (the two chosen cards fly to the middle) ---
-        function setRect(el, r) {
-            el.style.left = r.left + 'px';
-            el.style.top = r.top + 'px';
-            el.style.width = r.width + 'px';
-            el.style.height = r.height + 'px';
-        }
-
-        // Clone of a revealed board card; size, font size and padding animate together.
-        function buildFlyCard(card, side, origin, target) {
-            const isTerm = side === 'term';
-            const wrap = document.createElement('div');
-            wrap.style.position = 'fixed';
-            wrap.style.zIndex = '60';
-
-            const f = makeFace(card, side);
-            f.face.style.transform = 'none'; // face-up directly, no flip while flying
-            f.face.classList.remove('rotate-y-180', 'backface-hidden');
-            wrap.appendChild(f.face);
-            document.getElementById('review-layer').appendChild(wrap);
-
-            // measure the best font size at the target and at the origin size (no transitions yet)
-            const pad = (r) => Math.max(3, Math.min(r.width, r.height) * 0.07);
-            const measure = (r, max) => {
-                setRect(wrap, r);
-                setFacePadding(f.face, pad(r));
-                return fitText(f.p, f.box, max, 4);
-            };
-            const fontTarget = measure(target, isTerm ? 40 : 24);
-            const fontOrigin = measure(origin, 14);
-            wrap.getBoundingClientRect(); // commit start state
-
-            const ease = `${FLY_MS}ms cubic-bezier(.2,.8,.2,1)`;
-            wrap.style.transition = `left ${ease},top ${ease},width ${ease},height ${ease},opacity 400ms`;
-            f.face.style.transition = `padding ${ease}`;
-            f.p.style.transition = `font-size ${ease}`;
-
-            return {
-                wrap, face: f.face, p: f.p, fontOrigin, fontTarget,
-                padOrigin: pad(origin), padTarget: pad(target)
-            };
-        }
-
-        function startReview() {
-            const layer = document.getElementById('review-layer');
-            const backdrop = document.getElementById('review-backdrop');
-            const msg = document.getElementById('review-msg');
-            const actions = document.getElementById('review-actions');
-
-            const vw = window.innerWidth, vh = window.innerHeight;
-            const gap = 16;
-            const cardW = Math.min((vw - 3 * gap) / 2, 460);
-            const cardH = Math.min(vh * 0.58, 400);
-            const top = Math.max(60, (vh - cardH) / 2 - 30);
-            const targets = {
-                term: { left: vw / 2 - gap / 2 - cardW, top, width: cardW, height: cardH },
-                expl: { left: vw / 2 + gap / 2, top, width: cardW, height: cardH }
-            };
-
-            msg.style.top = Math.max(8, top - 52) + 'px';
-            msg.textContent = 'Passen diese beiden Karten zusammen?';
-            actions.style.top = (top + cardH + 18) + 'px';
-
-            layer.classList.remove('hidden');
-            reviewCards = flippedMemoryCards.map(({ side, index, card }) => {
-                const boardEl = document.getElementById(`mem-card-${side}-${index}`);
-                const r = boardEl.getBoundingClientRect();
-                const origin = { left: r.left, top: r.top, width: r.width, height: r.height };
-                const fly = buildFlyCard(card, side, origin, targets[side]);
-                boardEl.style.visibility = 'hidden';
-                return { ...fly, origin, target: targets[side], card, side, index, boardEl };
-            });
-
-            // two frames so the start state is committed before transitioning
-            requestAnimationFrame(() => requestAnimationFrame(() => {
-                backdrop.style.opacity = '1';
-                reviewCards.forEach((rc) => {
-                    setRect(rc.wrap, rc.target);
-                    rc.p.style.fontSize = rc.fontTarget + 'px';
-                    setFacePadding(rc.face, rc.padTarget);
-                });
-                setTimeout(() => {
-                    msg.style.opacity = '1';
-                    actions.style.opacity = '1';
-                    actions.style.pointerEvents = 'auto';
-                }, FLY_MS - 100);
-            }));
-        }
-
-        function hideReview() {
-            reviewCards.forEach((rc) => rc.wrap.remove());
-            reviewCards = [];
-            document.getElementById('review-layer').classList.add('hidden');
-            document.getElementById('review-backdrop').style.opacity = '0';
-            document.getElementById('review-msg').style.opacity = '0';
-            const actions = document.getElementById('review-actions');
-            actions.style.opacity = '0';
-            actions.style.pointerEvents = 'none';
-        }
-
-        // USER DECISION HANDLER (Ja / Nein)
-        function handleUserDecision(userThinksMatched) {
-            if (flippedMemoryCards.length !== 2 || reviewCards.length !== 2) return;
-
-            const actions = document.getElementById('review-actions');
-            actions.style.opacity = '0';
-            actions.style.pointerEvents = 'none';
-
-            const [first, second] = flippedMemoryCards;
-            const actuallyMatches = first.card.pairId === second.card.pairId;
-            const success = userThinksMatched && actuallyMatches;
-            const msg = document.getElementById('review-msg');
-
-            if (success) {
-                msg.textContent = `Richtig! 🎉 Punkt für Spieler ${activePlayer}`;
-            } else if (userThinksMatched) {
-                msg.textContent = 'Leider falsch ❌ Das war kein Paar';
-            } else {
-                msg.textContent = actuallyMatches ? 'Schade, das war ein Paar! 😬' : 'Okay, kein Paar 🔄';
-            }
-            msg.style.opacity = '1';
-
-            setTimeout(() => (success ? flyToPlayer(first, second) : flyBack(first, second)), success ? 900 : 1500);
-        }
-
-        function flyToPlayer(first, second) {
-            const chip = document.getElementById(`p${activePlayer}-card`).getBoundingClientRect();
-            const w = 40, h = 28;
-            const target = { left: chip.left + chip.width / 2 - w / 2, top: chip.top + chip.height / 2 - h / 2, width: w, height: h };
-            document.getElementById('review-msg').style.opacity = '0';
-            document.getElementById('review-backdrop').style.opacity = '0';
-            reviewCards.forEach((rc) => {
-                setRect(rc.wrap, target);
-                rc.p.style.fontSize = '3px';
-                setFacePadding(rc.face, 1);
-                rc.wrap.style.opacity = '0.2';
-            });
-
-            setTimeout(() => {
-                first.card.isMatched = true;
-                second.card.isMatched = true;
-                first.card.isFlipped = second.card.isFlipped = false;
-                scores[activePlayer]++;
-                matchedPairsCount++;
-                flippedMemoryCards = [];
-                hideReview();
-                renderMemoryGrids();
-                updateScoreboardUI();
-                document.getElementById(`p${activePlayer}-score`).animate(
-                    [{ transform: 'scale(1)' }, { transform: 'scale(1.8)' }, { transform: 'scale(1)' }], { duration: 450 });
-                isProcessingTurn = false;
-                if (matchedPairsCount === totalPairs) setTimeout(showWinnerModal, 600);
-            }, FLY_MS + 50);
-        }
-
-        function flyBack(first, second) {
-            document.getElementById('review-msg').style.opacity = '0';
-            document.getElementById('review-backdrop').style.opacity = '0';
-            const boardEls = reviewCards.map((rc) => rc.boardEl);
-            reviewCards.forEach((rc) => {
-                setRect(rc.wrap, rc.origin);
-                rc.p.style.fontSize = rc.fontOrigin + 'px';
-                setFacePadding(rc.face, rc.padOrigin);
-            });
-
-            // cards land face-up on their spot, rest for HOLD_MS, then turn back
-            setTimeout(() => {
-                boardEls.forEach((el) => { el.style.visibility = ''; });
-                hideReview();
-                setTimeout(() => {
-                    boardEls.forEach((el) => { el.firstChild.style.transform = ''; });
-                    setTimeout(() => {
-                        first.card.isFlipped = second.card.isFlipped = false;
-                        flippedMemoryCards = [];
-                        activePlayer = activePlayer === 1 ? 2 : 1;
-                        updateScoreboardUI();
-                        isProcessingTurn = false;
-                    }, FLIP_MS + 50);
-                }, HOLD_MS);
-            }, FLY_MS + 50);
-        }
-
-        function updateScoreboardUI() {
-            document.getElementById('p1-score').textContent = scores[1];
-            document.getElementById('p2-score').textContent = scores[2];
-
-            const p1Card = document.getElementById('p1-card');
-            const p2Card = document.getElementById('p2-card');
-            const turnDot = document.getElementById('turn-dot');
-            const base = "px-3 py-1 rounded-lg border-2 transition-all flex items-center gap-1.5 ";
-            const idle = "border-slate-800 bg-slate-950/40 opacity-60";
-
-            if (activePlayer === 1) {
-                p1Card.className = base + "border-emerald-500 bg-emerald-950/40 shadow-md";
-                p2Card.className = base + idle;
-                turnDot.className = "w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse shrink-0";
-            } else {
-                p2Card.className = base + "border-cyan-500 bg-cyan-950/40 shadow-md";
-                p1Card.className = base + idle;
-                turnDot.className = "w-2.5 h-2.5 rounded-full bg-cyan-400 animate-pulse shrink-0";
-            }
-            document.getElementById('turn-text').textContent = `Spieler ${activePlayer} ist dran: eine blaue & eine gelbe Karte wählen`;
-        }
-
-        function showWinnerModal() {
-            const modal = document.getElementById('winner-modal');
-            const winnerTitle = document.getElementById('winner-title');
-            const winnerText = document.getElementById('winner-text');
-            document.getElementById('final-p1').textContent = scores[1];
-            document.getElementById('final-p2').textContent = scores[2];
-
-            if (scores[1] > scores[2]) {
-                winnerTitle.textContent = "🎉 Spieler 1 gewinnt!";
-                winnerText.textContent = `Hervorragend! Spieler 1 hat mit ${scores[1]} zu ${scores[2]} Punkten gewonnen.`;
-            } else if (scores[2] > scores[1]) {
-                winnerTitle.textContent = "🎉 Spieler 2 gewinnt!";
-                winnerText.textContent = `Klasse! Spieler 2 hat mit ${scores[2]} zu ${scores[1]} Punkten gewonnen.`;
-            } else {
-                winnerTitle.textContent = "🤝 Unentschieden!";
-                winnerText.textContent = `Beide Spieler haben genau ${scores[1]} Punkte erzielt!`;
-            }
-
-            modal.classList.remove('hidden');
-        }
-
-        function closeWinnerModal() {
-            document.getElementById('winner-modal').classList.add('hidden');
-        }
-
-        // --- KEYBOARD LISTENERS ---
-        document.addEventListener('keydown', (e) => {
-            if (activeMode !== 'cards') return;
-
-            if (e.code === 'Space') {
-                e.preventDefault();
-                flipCard();
-            } else if (e.code === 'ArrowRight') {
-                nextCard();
-            } else if (e.code === 'ArrowLeft') {
-                prevCard();
-            }
-        });
-
-        // --- VOLLBILD (iPad-Safari: nur mit webkit-Präfix; iPhone unterstützt es nicht -> Button bleibt versteckt) ---
-        const fsRoot = document.documentElement;
-        const fsRequest = fsRoot.requestFullscreen || fsRoot.webkitRequestFullscreen;
-        const fsElement = () => document.fullscreenElement || document.webkitFullscreenElement;
-
-        function toggleFullscreen() {
-            if (fsElement()) {
-                (document.exitFullscreen || document.webkitExitFullscreen).call(document);
-            } else if (fsRequest) {
-                const p = fsRequest.call(fsRoot);
-                if (p && p.catch) p.catch(() => {});
-            }
-        }
-
-        function updateFullscreenIcon() {
-            const icon = document.getElementById('fullscreen-icon');
-            icon.className = fsElement() ? 'fa-solid fa-compress' : 'fa-solid fa-expand';
-        }
-
-        if (fsRequest) {
-            document.getElementById('fullscreen-btn').classList.remove('hidden');
-            document.addEventListener('fullscreenchange', updateFullscreenIcon);
-            document.addEventListener('webkitfullscreenchange', updateFullscreenIcon);
-        }
-
-        // INITIAL STARTUP
-        renderFlashcard();
-    </script>
+      }
+      for (let y = 0; y < size - 1; y++) for (let x = 0; x < size - 1; x++)
+        if (mod[y][x] === mod[y][x + 1] && mod[y][x] === mod[y + 1][x] && mod[y][x] === mod[y + 1][x + 1]) p += 3;
+      return p;
+    };
+    let best = 0, bestP = Infinity;
+    for (let m = 0; m < 8; m++) {
+      apply(m); formatBits(m);
+      const p = penalty();
+      if (p < bestP) { bestP = p; best = m; }
+      apply(m);
+    }
+    apply(best); formatBits(best);
+    return mod;
+  }
+
+  function drawQr(canvas, text) {
+    const m = makeQr(text), border = 4, scale = 8, n = m.length + border * 2;
+    canvas.width = canvas.height = n * scale;
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = '#000';
+    m.forEach((row, y) => row.forEach((v, x) => { if (v) ctx.fillRect((x + border) * scale, (y + border) * scale, scale, scale); }));
+  }
+
+  // --- QR-Dialog ---
+  const modal = document.getElementById('qrModal');
+  function showQr(p) {
+    const url = new URL(p.folder + '/index.html', location.href).href;
+    document.getElementById('qrTitle').textContent = p.name;
+    document.getElementById('qrUrl').textContent = url;
+    drawQr(document.getElementById('qrCanvas'), url);
+    modal.classList.add('open');
+  }
+  const closeQr = () => modal.classList.remove('open');
+  document.getElementById('qrClose').addEventListener('click', closeQr);
+  modal.addEventListener('click', e => { if (e.target === modal) closeQr(); });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeQr(); });
+
+  const QR_ICON = '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M3 3h8v8H3V3zm2 2v4h4V5H5zm8-2h8v8h-8V3zm2 2v4h4V5h-4zM3 13h8v8H3v-8zm2 2v4h4v-4H5zm8-2h3v3h-3v-3zm5 0h3v3h-3v-3zm-5 5h3v3h-3v-3zm5 0h3v3h-3v-3z"/></svg>';
+
+  const grid = document.getElementById('grid');
+  for (const p of projects) {
+    const wrap = document.createElement('div');
+    wrap.className = 'tile-wrap';
+
+    const a = document.createElement('a');
+    a.className = 'tile';
+    a.href = p.folder + '/index.html';
+
+    const top = document.createElement('div');
+    const name = document.createElement('div');
+    name.className = 'name';
+    name.textContent = p.name;
+    const folder = document.createElement('div');
+    folder.className = 'folder';
+    folder.textContent = p.folder + '/';
+    top.append(name, folder);
+
+    const date = document.createElement('div');
+    date.className = 'date';
+    date.textContent = 'Erstellt: ' + new Date(p.created).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' });
+
+    a.append(top, date);
+
+    const qr = document.createElement('button');
+    qr.type = 'button';
+    qr.className = 'qr-btn';
+    qr.title = 'QR-Code anzeigen';
+    qr.setAttribute('aria-label', 'QR-Code für ' + p.name + ' anzeigen');
+    qr.innerHTML = QR_ICON;
+    qr.addEventListener('click', () => showQr(p));
+
+    wrap.append(a, qr);
+    grid.appendChild(wrap);
+  }
+</script>
 </body>
 </html>
